@@ -1,0 +1,11 @@
+# Prisma
+node_modules
+.env
+pnpm-lock.yaml
+
+# Next.js
+.next
+
+# Prisma
+prisma
+docs

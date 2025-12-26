@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum Role {
+  ADMIN
+  TECHNICIAN
+  CLIENT
+}
+
+enum ServiceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  CLOSED // Servicio cerrado y bloqueado
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+enum PaymentGateway {
+  MERCADOPAGO
+  STRIPE
+  PAYPAL
+  OTHER
+}
+
+// Models
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  role         Role
+  avatar       String?
+  passwordHash String
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  servicesAsTechnician Service[] @relation("TechnicianServices")
+  servicesCreated      Service[] @relation("CreatedServices")
+  servicesClosed       Service[] @relation("ClosedServices")
+  payments             Payment[] @relation("TechnicianPayments")
+}
+
+model Client {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  address   String?
+  city      String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  services  Service[]
+}
+
+model ServiceCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  color       String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+}
+
+model Service {
+  id             String        @id @default(uuid())
+  title          String
+  description    String?
+  status         ServiceStatus @default(PENDING)
+  scheduledDate  DateTime
+  scheduledTime  String
+  address        String? // Dirección del servicio
+  completedAt    DateTime?
+  notes          String?
+  expectedAmount Decimal?      @db.Decimal(10, 2) // Monto esperado, editable hasta cierre
+  closedAt       DateTime?
+  isLocked       Boolean       @default(false) // Helper, pero status=CLOSED es la autoridad
+  technicianId   String?
+  clientId       String?
+  createdById    String
+  closedById     String?
+  categoryId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  technician User?            @relation("TechnicianServices", fields: [technicianId], references: [id])
+  client     Client?          @relation(fields: [clientId], references: [id])
+  createdBy  User             @relation("CreatedServices", fields: [createdById], references: [id])
+  closedBy   User?            @relation("ClosedServices", fields: [closedById], references: [id])
+  category   ServiceCategory? @relation(fields: [categoryId], references: [id])
+  payment    Payment?
+  report     ServiceReport?
+
+  @@index([technicianId])
+  @@index([clientId])
+  @@index([status])
+  @@index([categoryId])
+}
+
+model ServiceReport {
+  id          String         @id @default(uuid())
+  serviceId   String         @unique
+  finalReport String         @db.Text // Narrativa completa del trabajo
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  service     Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  photos      ServicePhoto[]
+  spareParts  SparePart[]
+}
+
+model ServicePhoto {
+  id             String        @id @default(uuid())
+  reportId       String
+  url            String
+  technicalNotes String?       @db.Text // Observaciones técnicas por foto
+  order          Int           @default(0)
+  createdAt      DateTime      @default(now())
+  report         ServiceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model SparePart {
+  id         String        @id @default(uuid())
+  reportId   String
+  name       String
+  quantity   Int           @default(1)
+  unitPrice  Decimal       @default(0) @db.Decimal(10, 2)
+  totalPrice Decimal       @default(0) @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  report     ServiceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  method         PaymentMethod
+  amountPaid     Decimal       @db.Decimal(10, 2) // Monto efectivamente cobrado
+  sparePartsCost Decimal       @default(0) @db.Decimal(10, 2)
+  debtAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  hasDebt        Boolean       @default(false)
+  notes          String?
+  technicianId   String
+  serviceId      String        @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  technician User    @relation("TechnicianPayments", fields: [technicianId], references: [id])
+  service    Service @relation(fields: [serviceId], references: [id])
+
+  @@index([technicianId])
+}
