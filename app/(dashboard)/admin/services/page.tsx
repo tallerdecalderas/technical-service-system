@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ServicesTable } from "@/components/services/services-table";
 import { Plus } from "lucide-react";
 
+// Cache for 30 seconds - services list updates frequently
+export const revalidate = 30;
+
 export default async function AdminServicesPage() {
   const services = await prisma.service.findMany({
     include: {

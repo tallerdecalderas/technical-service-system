@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import { TodayServices } from "@/components/dashboard/today-services";
 
-async function getDashboardStats() {
+// Cache this page for 60 seconds to reduce database load
+export const revalidate = 60;
+
+async function getDashboardData() {
   const today = new Date();
   const startOfDay = new Date(today);
   startOfDay.setHours(0, 0, 0, 0);
@@ -12,8 +15,9 @@ async function getDashboardStats() {
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
+  // Execute all queries in parallel for better performance
   const [
-    todayServices,
+    todayServicesData,
     pendingServices,
     inProgressServices,
     completedThisMonth,
@@ -21,13 +25,21 @@ async function getDashboardStats() {
     activeTechnicians,
     totalClients,
   ] = await Promise.all([
-    prisma.service.count({
+    // Get full today's services data instead of just counting
+    prisma.service.findMany({
       where: {
         scheduledDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
       },
+      include: {
+        technician: true,
+        client: true,
+        createdBy: true,
+        payment: true,
+      },
+      orderBy: { scheduledTime: "asc" },
     }),
     prisma.service.count({ where: { status: "PENDING" } }),
     prisma.service.count({ where: { status: "IN_PROGRESS" } }),
@@ -43,46 +55,26 @@ async function getDashboardStats() {
     prisma.payment.aggregate({
       _sum: { amountPaid: true },
     }),
-
     prisma.user.count({ where: { role: "TECHNICIAN", isActive: true } }),
     prisma.client.count(),
   ]);
 
   return {
-    todayServices,
-    pendingServices,
-    inProgressServices,
-    completedThisMonth,
-    totalCollected: totalCollectedAgg._sum.amountPaid?.toNumber() || 0,
-
-    activeTechnicians,
-    totalClients,
+    stats: {
+      todayServices: todayServicesData.length,
+      pendingServices,
+      inProgressServices,
+      completedThisMonth,
+      totalCollected: totalCollectedAgg._sum.amountPaid?.toNumber() || 0,
+      activeTechnicians,
+      totalClients,
+    },
+    todayServices: todayServicesData,
   };
 }
 
 export default async function AdminDashboardPage() {
-  const stats = await getDashboardStats();
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
-
-  const todayServices = await prisma.service.findMany({
-    where: {
-      scheduledDate: {
-        gte: todayStart,
-        lte: todayEnd,
-      },
-    },
-    include: {
-      technician: true,
-      client: true,
-      createdBy: true,
-      payment: true,
-    },
-    orderBy: { scheduledTime: "asc" },
-  });
+  const { stats, todayServices } = await getDashboardData();
 
   return (
     <div className="space-y-6">

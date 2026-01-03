@@ -1,53 +1,59 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, AlertCircle } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export function LoginForm() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Error al iniciar sesión")
-        return
+        setError(data.error || "Error al iniciar sesión");
+        return;
       }
 
       // Redirect based on role
       if (data.data.role === "ADMIN") {
-        router.push("/admin/dashboard")
+        router.push("/admin/dashboard");
       } else {
-        router.push("/technician/dashboard")
+        router.push("/technician/dashboard");
       }
-      router.refresh()
+      router.refresh();
     } catch {
-      setError("Error de conexión. Intente nuevamente.")
+      setError("Error de conexión. Intente nuevamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -55,7 +61,9 @@ export function LoginForm() {
     <Card>
       <CardHeader>
         <CardTitle>Iniciar Sesión</CardTitle>
-        <CardDescription>Ingresa tus credenciales para acceder al sistema</CardDescription>
+        <CardDescription>
+          Ingresa tus credenciales para acceder al sistema
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,15 +115,17 @@ export function LoginForm() {
             <p className="font-medium mb-2">Credenciales de prueba:</p>
             <div className="space-y-1 text-muted-foreground">
               <p>
-                <span className="font-medium">Admin:</span> admin@techservice.com / admin123
+                <span className="font-medium">Admin:</span>{" "}
+                admin@techservice.com / admin123
               </p>
               <p>
-                <span className="font-medium">Técnico:</span> juan@techservice.com / tech123
+                <span className="font-medium">Técnico:</span>{" "}
+                lopez@techservice.com / tech123
               </p>
             </div>
           </div>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

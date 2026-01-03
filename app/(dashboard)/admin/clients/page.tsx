@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ClientsTable } from "@/components/clients/clients-table";
 import { Plus } from "lucide-react";
 
+// Cache for 60 seconds - client data updates less frequently
+export const revalidate = 60;
+
 export default async function AdminClientsPage() {
   const clients = await prisma.client.findMany({
     orderBy: { createdAt: "desc" },

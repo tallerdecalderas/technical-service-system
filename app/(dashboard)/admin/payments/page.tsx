@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { PaymentsTable } from "@/components/payments/payments-table";
 import { Role } from "@/generated/prisma";
 
+// Cache for 30 seconds - payments data updates frequently
+export const revalidate = 30;
+
 export default async function AdminPaymentsPage() {
   const payments = await prisma.payment.findMany({
     include: {

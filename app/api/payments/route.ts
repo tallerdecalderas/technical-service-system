@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     if (technicianId) where.technicianId = technicianId;
-    if (technicianId) where.technicianId = technicianId;
 
     if (session.role === "TECHNICIAN") {
       where.technicianId = session.id;
@@ -69,14 +68,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify service exists
+    // Verify service exists - only select fields we need for validation
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
-      include: {
-        technician: true,
-        client: true,
-        createdBy: true,
-        payment: true,
+      select: {
+        id: true,
+        technicianId: true,
       },
     });
 
