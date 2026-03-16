@@ -67,6 +67,19 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
   const [receiptPhoto, setReceiptPhoto] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
+  // Auto-calculate debt when amount changes and there's an expectedAmount
+  const expectedAmount = service.expectedAmount
+    ? Number(service.expectedAmount)
+    : null;
+  const parsedAmount = Number.parseFloat(amount) || 0;
+  const autoDebt =
+    expectedAmount !== null && parsedAmount < expectedAmount
+      ? Math.max(0, expectedAmount - parsedAmount)
+      : 0;
+  // Use manual debtAmount if explicitly set, otherwise auto-calculate
+  const effectiveDebt =
+    debtAmount !== "" ? Number.parseFloat(debtAmount) || 0 : autoDebt;
+
   // Handle receipt photo selection
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -145,25 +158,27 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
         }),
       });
 
-      // Then register payment if amount > 0
-      if (amount && Number.parseFloat(amount) > 0) {
-        const paymentRes = await fetch("/api/payments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            serviceId: service.id,
-            amount: Number.parseFloat(amount) || 0,
-            debtAmount: Number.parseFloat(debtAmount) || 0,
-            hasDebt: paymentType === "MANUAL",
-            method: paymentMethod,
-            paymentType,
-            technicianId: service.technicianId,
-            receiptPhotoUrl: uploadedPhotoUrl,
-          }),
-        });
+      // Register payment (even if amount is 0 to track the service completion)
+      const finalAmount = Number.parseFloat(amount) || 0;
+      const finalDebt = effectiveDebt;
+      const finalHasDebt = finalDebt > 0;
 
-        if (!paymentRes.ok) throw new Error("Error al registrar pago");
-      }
+      const paymentRes = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceId: service.id,
+          amount: finalAmount,
+          debtAmount: finalDebt,
+          hasDebt: finalHasDebt,
+          method: paymentMethod,
+          paymentType,
+          technicianId: service.technicianId,
+          receiptPhotoUrl: uploadedPhotoUrl,
+        }),
+      });
+
+      if (!paymentRes.ok) throw new Error("Error al registrar pago");
 
       setStatus("COMPLETED");
       setShowPayment(false);
@@ -406,32 +421,57 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   step="0.01"
                   placeholder="0"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    // Reset manual debt override when amount changes
+                    setDebtAmount("");
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
                   Monto que el cliente entrega ahora
                 </p>
               </div>
 
-              {paymentType === "MANUAL" && (
-                <div className="space-y-2">
-                  <Label htmlFor="debtAmount" className="text-red-600">
-                    Monto adeudado (Deuda)
-                  </Label>
-                  <Input
-                    id="debtAmount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={debtAmount}
-                    onChange={(e) => setDebtAmount(e.target.value)}
-                    className="border-red-200"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Lo que el cliente queda debiendo
+              {/* Auto-calculated debt or manual override */}
+              {autoDebt > 0 && debtAmount === "" && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm font-medium text-red-700">
+                    Deuda calculada automáticamente
+                  </p>
+                  <p className="text-lg font-bold text-red-600">
+                    {formatCurrency(autoDebt)}
+                  </p>
+                  <p className="text-xs text-red-500">
+                    El cliente pagó {formatCurrency(parsedAmount)} de{" "}
+                    {formatCurrency(expectedAmount!)} esperado
                   </p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="debtAmount" className="text-red-600">
+                  Monto adeudado (dejar en blanco para auto-calcular)
+                </Label>
+                <Input
+                  id="debtAmount"
+                  type="number"
+                  step="0.01"
+                  placeholder={
+                    autoDebt > 0
+                      ? `Auto: ${autoDebt.toFixed(2)}`
+                      : "0 (sin deuda)"
+                  }
+                  value={debtAmount}
+                  onChange={(e) => setDebtAmount(e.target.value)}
+                  className={effectiveDebt > 0 ? "border-red-200" : ""}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lo que el cliente queda debiendo
+                  {effectiveDebt > 0
+                    ? ` — Deuda: ${formatCurrency(effectiveDebt)}`
+                    : " — Sin deuda"}
+                </p>
+              </div>
 
               {amount && Number.parseFloat(amount) > 0 && (
                 <div className="space-y-2">

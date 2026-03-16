@@ -15,7 +15,7 @@ export async function PATCH(
       );
     }
 
-    // Only admins can mark debts as paid
+    // Only admins can update debt payments
     if (session.role !== "ADMIN") {
       return NextResponse.json(
         { success: false, error: "Sin permisos" },
@@ -34,19 +34,42 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { debtAmount, hasDebt } = body as {
-      debtAmount?: number;
+    const { additionalPayment, debtAmount, hasDebt } = body as {
+      additionalPayment?: number; // Monto adicional que el cliente paga ahora
+      debtAmount?: number; // Sobreescribir deuda directamente
       hasDebt?: boolean;
     };
+
+    let newAmountPaid = Number(existing.amountPaid);
+    let newDebtAmount = Number(existing.debtAmount);
+    let newHasDebt = existing.hasDebt;
+
+    if (additionalPayment !== undefined && additionalPayment > 0) {
+      // Registrar pago parcial: sumar al pagado, restar a la deuda
+      newAmountPaid = newAmountPaid + additionalPayment;
+      newDebtAmount = Math.max(0, newDebtAmount - additionalPayment);
+      newHasDebt = newDebtAmount > 0;
+    } else {
+      // Actualización directa de deuda (ej: saldar todo)
+      if (debtAmount !== undefined) newDebtAmount = Math.max(0, debtAmount);
+      if (hasDebt !== undefined) newHasDebt = hasDebt;
+      // Si la deuda queda en 0 siempre marcar como saldado
+      if (newDebtAmount === 0) newHasDebt = false;
+    }
 
     const updated = await prisma.payment.update({
       where: { id },
       data: {
-        ...(debtAmount !== undefined && { debtAmount }),
-        ...(hasDebt !== undefined && { hasDebt }),
+        amountPaid: newAmountPaid,
+        debtAmount: newDebtAmount,
+        hasDebt: newHasDebt,
       },
       include: {
-        service: true,
+        service: {
+          include: {
+            client: true,
+          },
+        },
         technician: true,
       },
     });
