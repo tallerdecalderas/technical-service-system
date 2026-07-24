@@ -1,16 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import {
-  listTechnicians,
-  createTechnician,
-} from "@/lib/services/technician.service";
-import { createTechnicianSchema } from "@/lib/validations";
+  listPaymentParts,
+  addPaymentPart,
+} from "@/lib/services/payment-part.service";
+import { createPaymentPartSchema } from "@/lib/validations";
 
-export async function GET() {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     await requireAuth();
-    const technicians = await listTechnicians();
-    return NextResponse.json({ success: true, data: technicians });
+    const { id } = await params;
+    const parts = await listPaymentParts(id);
+    return NextResponse.json({ success: true, data: parts });
   } catch (error: any) {
     const status = error.message === "Unauthorized" ? 401 : 500;
     return NextResponse.json(
@@ -20,18 +25,13 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth();
-    if (session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 },
-      );
-    }
-
+    const { id: paymentId } = await params;
     const body = await request.json();
-    const parsed = createTechnicianSchema.safeParse(body);
+
+    const parsed = createPaymentPartSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.errors[0].message },
@@ -39,19 +39,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const technician = await createTechnician(parsed.data);
-    return NextResponse.json(
-      { success: true, data: technician },
-      { status: 201 },
-    );
+    const part = await addPaymentPart(paymentId, parsed.data, session);
+    return NextResponse.json({ success: true, data: part }, { status: 201 });
   } catch (error: any) {
     const status =
       error.message === "Unauthorized"
         ? 401
         : error.message?.includes("permisos")
           ? 403
-          : error.message?.includes("ya está registrado")
-            ? 409
+          : error.message?.includes("no encontrad")
+            ? 404
             : 500;
     return NextResponse.json(
       { success: false, error: error.message ?? "Error interno" },
