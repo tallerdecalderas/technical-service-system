@@ -54,6 +54,7 @@ model User {
   settlementsAsTechnician Settlement[] @relation("TechnicianSettlements")
   settlementsLiquidated   Settlement[] @relation("LiquidatedSettlements")
   activityLogs            ActivityLog[]
+  integrationLogs      IntegrationLog[]
 }
 
 model Client {
@@ -247,3 +248,20 @@ model ActivityLog {
   @@index([userId])
 }
 
+
+model IntegrationLog {
+  id          String   @id @default(uuid())
+  type        String // "WhatsApp", "Google Sheets", etc.
+  entity      String // "Service", "Estimate", etc.
+  entityId    String 
+  result      String // "SUCCESS", "ERROR"
+  message     String? 
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([type])
+  @@index([entityId])
+  @@index([userId])
+}

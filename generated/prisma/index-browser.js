@@ -24,12 +24,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 7.8.0
- * Query Engine version: 3c6e192761c0362d496ed980de936e2f3cebcd3a
+ * Prisma Client JS version: 7.4.0
+ * Query Engine version: ab56fe763f921d033a6c195e7ddeb3e255bdbb57
  */
 Prisma.prismaVersion = {
-  client: "7.8.0",
-  engine: "3c6e192761c0362d496ed980de936e2f3cebcd3a"
+  client: "7.4.0",
+  engine: "ab56fe763f921d033a6c195e7ddeb3e255bdbb57"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -190,6 +190,30 @@ exports.Prisma.PaymentScalarFieldEnum = {
   notes: 'notes',
   technicianId: 'technicianId',
   serviceId: 'serviceId',
+  settlementId: 'settlementId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PaymentPartScalarFieldEnum = {
+  id: 'id',
+  paymentId: 'paymentId',
+  supplierId: 'supplierId',
+  description: 'description',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  totalPrice: 'totalPrice',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SupplierScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone: 'phone',
+  email: 'email',
+  notes: 'notes',
+  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -201,14 +225,64 @@ exports.Prisma.EstimateScalarFieldEnum = {
   clientId: 'clientId',
   amount: 'amount',
   description: 'description',
+  notes: 'notes',
   status: 'status',
+  completedAt: 'completedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SettlementScalarFieldEnum = {
+  id: 'id',
+  technicianId: 'technicianId',
+  weekNumber: 'weekNumber',
+  year: 'year',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  ordersCount: 'ordersCount',
+  paymentsCount: 'paymentsCount',
+  totalCollected: 'totalCollected',
+  totalParts: 'totalParts',
+  netAmount: 'netAmount',
+  techCommission: 'techCommission',
+  compCommission: 'compCommission',
+  status: 'status',
+  notes: 'notes',
+  liquidatedAt: 'liquidatedAt',
+  liquidatedById: 'liquidatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ActivityLogScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.IntegrationLogScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  entity: 'entity',
+  entityId: 'entityId',
+  result: 'result',
+  message: 'message',
+  userId: 'userId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -219,6 +293,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
@@ -241,9 +321,13 @@ exports.PaymentMethod = exports.$Enums.PaymentMethod = {
 };
 
 exports.EstimateStatus = exports.$Enums.EstimateStatus = {
-  SENT: 'SENT',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED'
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED'
+};
+
+exports.SettlementStatus = exports.$Enums.SettlementStatus = {
+  PENDING: 'PENDING',
+  SETTLED: 'SETTLED'
 };
 
 exports.Prisma.ModelName = {
@@ -252,7 +336,12 @@ exports.Prisma.ModelName = {
   ServiceCategory: 'ServiceCategory',
   Service: 'Service',
   Payment: 'Payment',
-  Estimate: 'Estimate'
+  PaymentPart: 'PaymentPart',
+  Supplier: 'Supplier',
+  Estimate: 'Estimate',
+  Settlement: 'Settlement',
+  ActivityLog: 'ActivityLog',
+  IntegrationLog: 'IntegrationLog'
 };
 
 /**
