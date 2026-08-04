@@ -1,62 +1,61 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { hash } from "bcrypt";
+import { requireAuth } from "@/lib/auth";
+import {
+  listTechnicians,
+  createTechnician,
+} from "@/lib/services/technician.service";
+import { createTechnicianSchema } from "@/lib/validations";
+
+export async function GET() {
+  try {
+    await requireAuth();
+    const technicians = await listTechnicians();
+    return NextResponse.json({ success: true, data: technicians });
+  } catch (error: any) {
+    const status = error.message === "Unauthorized" ? 401 : 500;
+    return NextResponse.json(
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
+    const session = await requireAuth();
+    if (session.role !== "ADMIN") {
       return NextResponse.json(
-        { success: false, error: "No autorizado" },
-        { status: 403 }
+        { success: false, error: "Sin permisos" },
+        { status: 403 },
       );
     }
 
     const body = await request.json();
-    const { name, email, password, phone } = body;
-
-    if (!name || !email || !password) {
+    const parsed = createTechnicianSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Faltan datos requeridos" },
-        { status: 400 }
+        { success: false, error: parsed.error.errors[0].message },
+        { status: 400 },
       );
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "El email ya está registrado" },
-        { status: 400 }
-      );
-    }
-
-    const passwordHash = await hash(password, 10);
-
-    const technician = await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        phone,
-        role: "TECHNICIAN",
-        isActive: true,
-      },
-    });
-
-    // Remove passwordHash from response
-    const { passwordHash: _, ...userWithoutPassword } = technician;
-
-    return NextResponse.json({ success: true, data: userWithoutPassword });
-  } catch (error) {
-    console.error("Error creating technician:", error);
+    const technician = await createTechnician(parsed.data);
     return NextResponse.json(
-      { success: false, error: "Error al crear técnico" },
-      { status: 500 }
+      { success: true, data: technician },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : error.message?.includes("ya está registrado")
+            ? 409
+            : 500;
+    return NextResponse.json(
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }

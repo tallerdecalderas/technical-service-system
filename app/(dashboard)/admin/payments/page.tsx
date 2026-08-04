@@ -9,7 +9,11 @@ export const revalidate = 30;
 export default async function AdminPaymentsPage() {
   const payments = await prisma.payment.findMany({
     include: {
-      service: true,
+      service: {
+        include: {
+          client: true,
+        },
+      },
       technician: true,
     },
     orderBy: { createdAt: "desc" },

@@ -29,9 +29,8 @@ enum PaymentMethod {
 }
 
 enum EstimateStatus {
-  SENT
-  APPROVED
-  REJECTED
+  PENDING
+  COMPLETED
 }
 
 model User {
@@ -47,11 +46,15 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  servicesAsTechnician Service[]  @relation("TechnicianServices")
-  servicesCreated      Service[]  @relation("CreatedServices")
-  servicesClosed       Service[]  @relation("ClosedServices")
-  payments             Payment[]  @relation("TechnicianPayments")
-  estimates            Estimate[]
+  servicesAsTechnician    Service[]    @relation("TechnicianServices")
+  servicesCreated         Service[]    @relation("CreatedServices")
+  servicesClosed          Service[]    @relation("ClosedServices")
+  payments                Payment[]    @relation("TechnicianPayments")
+  estimates               Estimate[]
+  settlementsAsTechnician Settlement[] @relation("TechnicianSettlements")
+  settlementsLiquidated   Settlement[] @relation("LiquidatedSettlements")
+  activityLogs            ActivityLog[]
+  integrationLogs      IntegrationLog[]
 }
 
 model Client {
@@ -103,13 +106,14 @@ model Service {
   updatedAt         DateTime      @updatedAt
 
   // Relations
-  technician User?            @relation("TechnicianServices", fields: [technicianId], references: [id])
-  client     Client?          @relation(fields: [clientId], references: [id])
-  createdBy  User             @relation("CreatedServices", fields: [createdById], references: [id])
-  closedBy   User?            @relation("ClosedServices", fields: [closedById], references: [id])
-  category   ServiceCategory? @relation(fields: [categoryId], references: [id])
-  payment    Payment?
-  estimate   Estimate?
+  technician   User?            @relation("TechnicianServices", fields: [technicianId], references: [id])
+  client       Client?          @relation(fields: [clientId], references: [id])
+  createdBy    User             @relation("CreatedServices", fields: [createdById], references: [id])
+  closedBy     User?            @relation("ClosedServices", fields: [closedById], references: [id])
+  category     ServiceCategory? @relation(fields: [categoryId], references: [id])
+  payment      Payment?
+  estimate     Estimate?
+  activityLogs ActivityLog[]
 
   @@index([technicianId])
   @@index([clientId])
@@ -128,14 +132,48 @@ model Payment {
   notes           String?
   technicianId    String
   serviceId       String        @unique
+  settlementId    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   // Relations
-  technician User    @relation("TechnicianPayments", fields: [technicianId], references: [id])
-  service    Service @relation(fields: [serviceId], references: [id])
+  technician User          @relation("TechnicianPayments", fields: [technicianId], references: [id])
+  service    Service       @relation(fields: [serviceId], references: [id])
+  settlement Settlement?   @relation(fields: [settlementId], references: [id])
+  parts      PaymentPart[]
 
   @@index([technicianId])
+  @@index([settlementId])
+}
+
+model PaymentPart {
+  id          String   @id @default(uuid())
+  paymentId   String
+  supplierId  String
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([paymentId])
+  @@index([supplierId])
+}
+
+model Supplier {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  phone        String?
+  email        String?
+  notes        String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  paymentParts PaymentPart[]
 }
 
 model Estimate {
@@ -145,10 +183,11 @@ model Estimate {
   clientId     String
   amount       Decimal        @db.Decimal(10, 2)
   description  String?
-  status       EstimateStatus @default(SENT)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes        String?
+  status       EstimateStatus @default(PENDING)
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   // Relations
   service    Service @relation(fields: [serviceId], references: [id])
@@ -156,4 +195,73 @@ model Estimate {
   client     Client  @relation(fields: [clientId], references: [id])
 
   @@index([status])
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+}
+
+model Settlement {
+  id             String           @id @default(uuid())
+  technicianId   String
+  weekNumber     Int
+  year           Int
+  startDate      DateTime
+  endDate        DateTime
+  ordersCount    Int              @default(0)
+  paymentsCount  Int              @default(0)
+  totalCollected Decimal          @db.Decimal(10, 2) @default(0)
+  totalParts     Decimal          @db.Decimal(10, 2) @default(0)
+  netAmount      Decimal          @db.Decimal(10, 2) @default(0)
+  techCommission Decimal          @db.Decimal(10, 2) @default(0)
+  compCommission Decimal          @db.Decimal(10, 2) @default(0)
+  status         SettlementStatus @default(PENDING)
+  notes          String?
+  liquidatedAt   DateTime?
+  liquidatedById String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  technician   User      @relation("TechnicianSettlements", fields: [technicianId], references: [id])
+  liquidatedBy User?     @relation("LiquidatedSettlements", fields: [liquidatedById], references: [id])
+  payments     Payment[]
+
+  @@unique([technicianId, weekNumber, year])
+  @@index([technicianId])
+  @@index([status])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  serviceId   String
+  userId      String
+  action      String
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([serviceId])
+  @@index([userId])
+}
+
+
+model IntegrationLog {
+  id          String   @id @default(uuid())
+  type        String // "WhatsApp", "Google Sheets", etc.
+  entity      String // "Service", "Estimate", etc.
+  entityId    String 
+  result      String // "SUCCESS", "ERROR"
+  message     String? 
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([type])
+  @@index([entityId])
+  @@index([userId])
 }

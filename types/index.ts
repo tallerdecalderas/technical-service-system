@@ -3,36 +3,80 @@ import {
   type Client as PrismaClient,
   type Service as PrismaService,
   type Payment as PrismaPayment,
+  type PaymentPart as PrismaPaymentPart,
+  type Supplier as PrismaSupplier,
+  type Estimate as PrismaEstimate,
+  type Settlement as PrismaSettlement,
+  type ActivityLog as PrismaActivityLog,
+  type ServiceCategory as PrismaServiceCategory,
   type Role as PrismaRole,
   type ServiceStatus as PrismaServiceStatus,
   type PaymentMethod as PrismaPaymentMethod,
+  type EstimateStatus as PrismaEstimateStatus,
+  type SettlementStatus as PrismaSettlementStatus,
 } from "@/generated/prisma";
 
-// Re-export Prisma types
+// ─── Prisma model re-exports ──────────────────────────────────────────────────
 export type User = PrismaUser;
 export type Client = PrismaClient;
+export type Supplier = PrismaSupplier;
+export type ServiceCategory = PrismaServiceCategory;
+
+// ─── Enum re-exports ──────────────────────────────────────────────────────────
+export type Role = PrismaRole;
+export type ServiceStatus = PrismaServiceStatus;
+export type PaymentMethod = PrismaPaymentMethod;
+export type EstimateStatus = PrismaEstimateStatus;
+export type SettlementStatus = PrismaSettlementStatus;
+
+// ─── Rich types with relations ────────────────────────────────────────────────
+
 export type Service = PrismaService & {
   technician?: User | null;
   client?: Client | null;
   createdBy?: User | null;
+  closedBy?: User | null;
   payment?: Payment | null;
+  estimate?: Estimate | null;
+  activityLogs?: ActivityLog[];
+  category?: ServiceCategory | null;
 };
+
 export type Payment = PrismaPayment & {
   service?: Service | null;
   technician?: User | null;
+  parts?: PaymentPart[];
+  settlement?: Settlement | null;
 };
 
-export type Role = PrismaRole;
-export type ServiceStatus = PrismaServiceStatus;
-export type PaymentMethod = PrismaPaymentMethod;
+export type PaymentPart = PrismaPaymentPart & {
+  supplier?: Supplier | null;
+  payment?: Payment | null;
+};
 
-// Manually defined since it was removed from Prisma schema but used in UI
-export type PaymentType = "ON_SITE" | "MANUAL";
+export type Estimate = PrismaEstimate & {
+  service?: Service | null;
+  technician?: User | null;
+  client?: Client | null;
+};
 
-// API Types
+export type Settlement = PrismaSettlement & {
+  technician?: User | null;
+  liquidatedBy?: User | null;
+  payments?: Payment[];
+};
+
+export type ActivityLog = PrismaActivityLog & {
+  service?: Service | null;
+  user?: User | null;
+};
+
+// ─── API Types ────────────────────────────────────────────────────────────────
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  message?: string;
   error?: string;
 }
 
@@ -49,17 +93,32 @@ export interface SessionUser {
   avatar?: string | null;
 }
 
-// Filter types
+// ─── Filter types ─────────────────────────────────────────────────────────────
+
 export interface ServiceFilters {
   status?: ServiceStatus;
   technicianId?: string;
   clientId?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface PaymentFilters {
   technicianId?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
+  dateFrom?: string;
+  dateTo?: string;
+  weekNumber?: number;
+  year?: number;
+}
+
+export interface EstimateFilters {
+  status?: EstimateStatus;
+  technicianId?: string;
+}
+
+export interface SettlementFilters {
+  technicianId?: string;
+  weekNumber?: number;
+  year?: number;
+  status?: SettlementStatus;
 }
