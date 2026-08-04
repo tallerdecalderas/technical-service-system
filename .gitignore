@@ -1,6 +1,6 @@
 # Prisma
 node_modules
-.env
+# .env
 pnpm-lock.yaml
 
 # Next.js
@@ -8,6 +8,6 @@ pnpm-lock.yaml
 
 # Prisma
 generated
-docs
+# docs
 docker-compose.yml
 node_modules
