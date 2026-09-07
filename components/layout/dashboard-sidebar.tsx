@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
 import {
   LayoutDashboard,
   Wrench,
@@ -24,11 +24,11 @@ import {
   UserCircle,
   LogOut,
   ClipboardList,
-} from "lucide-react";
-import type { SessionUser } from "@/types";
+} from "lucide-react"
+import type { SessionUser } from "@/types"
 
 interface DashboardSidebarProps {
-  user: SessionUser;
+  user: SessionUser
 }
 
 const adminNavItems = [
@@ -37,18 +37,25 @@ const adminNavItems = [
   { title: "Agenda", href: "/admin/schedule", icon: Calendar },
   { title: "Clientes", href: "/admin/clients", icon: Users },
   { title: "Técnicos", href: "/admin/technicians", icon: UserCircle },
+  { title: "Presupuestos", href: "/admin/estimates", icon: FileText },
+  { title: "Rendiciones", href: "/admin/settlements", icon: ClipboardList },
   { title: "Cobros", href: "/admin/payments", icon: CreditCard },
-];
+]
 
 const technicianNavItems = [
   { title: "Mi Agenda", href: "/technician/dashboard", icon: LayoutDashboard },
   { title: "Calendario", href: "/technician/schedule", icon: Calendar },
   { title: "Mis Servicios", href: "/technician/services", icon: ClipboardList },
-];
+  {
+    title: "Mis Rendiciones",
+    href: "/technician/settlements",
+    icon: CreditCard,
+  },
+]
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
-  const pathname = usePathname();
-  const navItems = user.role === "ADMIN" ? adminNavItems : technicianNavItems;
+  const pathname = usePathname()
+  const navItems = user.role === "ADMIN" ? adminNavItems : technicianNavItems
 
   return (
     <Sidebar>
@@ -116,13 +123,13 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         </div>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
 
 function LogoutButton() {
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    await fetch("/api/auth/logout", { method: "POST" })
+    window.location.href = "/login"
   }
 
   return (
@@ -133,5 +140,5 @@ function LogoutButton() {
     >
       <LogOut className="h-4 w-4" />
     </button>
-  );
+  )
 }

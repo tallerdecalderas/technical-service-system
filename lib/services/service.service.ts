@@ -145,11 +145,13 @@ export async function createService(
     data: {
       title: data.title,
       description: data.description,
+      companyId: data.companyId,
       clientId: data.clientId,
       technicianId: data.technicianId ?? undefined,
       scheduledDate: new Date(data.scheduledDate),
       scheduledTime: data.scheduledTime,
       address: data.address,
+      locality: data.locality,
       notes: data.notes,
       expectedAmount: data.expectedAmount ?? undefined,
       categoryId: data.categoryId ?? undefined,
@@ -239,7 +241,7 @@ export async function updateService(
   if (
     data.scheduledDate &&
     new Date(data.scheduledDate).toDateString() !==
-      existing.scheduledDate.toDateString()
+    existing.scheduledDate.toDateString()
   ) {
     changes.from = existing.scheduledDate;
     changes.to = data.scheduledDate;
@@ -324,7 +326,6 @@ export async function finishService(
     where: { id },
     data: {
       status: "CLOSED",
-      isLocked: true,
       closedAt: new Date(),
       closedById: session.id,
       ...(data.notes !== undefined && { notes: data.notes }),

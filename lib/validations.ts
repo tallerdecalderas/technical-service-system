@@ -7,7 +7,7 @@ export const createClientSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
-  city: z.string().optional(),
+  locality: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -121,8 +121,14 @@ export const updateSupplierSchema = createSupplierSchema.partial();
 
 export const generateSettlementSchema = z.object({
   technicianId: z.string().uuid("technicianId inválido"),
-  weekNumber: z.number().int().min(1).max(53),
-  year: z.number().int().min(2020),
+  /** Fecha inicio del período (ISO string) */
+  startDate: z.string().min(1, "La fecha de inicio es requerida"),
+  /** Fecha fin del período (ISO string) */
+  endDate: z.string().min(1, "La fecha de fin es requerida"),
+  /** Etiqueta descriptiva, generada automáticamente si no se provee */
+  label: z.string().optional(),
+  /** Empresa a asociar (opcional) */
+  companyId: z.string().uuid().optional().nullable(),
 });
 
 // ─── Técnicos ─────────────────────────────────────────────────────────────────

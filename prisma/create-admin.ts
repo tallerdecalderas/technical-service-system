@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcrypt";
 
+
 const createAdmin = async () => {
     try {
         const name = "Admin User";
@@ -12,16 +13,16 @@ const createAdmin = async () => {
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
         console.log(`Creating user: ${email}`);
-        const user = await prisma.user.upsert({
-            where: { email },
-            update: {
-                name,
-                passwordHash,
-                role: "ADMIN",
-            },
+        const user = await prisma.orm.public.User.upsert({
+            conflictOn: { email },
             create: {
                 name,
                 email,
+                passwordHash,
+                role: "ADMIN",
+            },
+            update: {
+                name,
                 passwordHash,
                 role: "ADMIN",
             },

@@ -1,23 +1,7 @@
-import {
-  type User as PrismaUser,
-  type Client as PrismaClient,
-  type Service as PrismaService,
-  type Payment as PrismaPayment,
-  type PaymentPart as PrismaPaymentPart,
-  type Supplier as PrismaSupplier,
-  type Estimate as PrismaEstimate,
-  type Settlement as PrismaSettlement,
-  type ActivityLog as PrismaActivityLog,
-  type ServiceCategory as PrismaServiceCategory,
-  type Role as PrismaRole,
-  type ServiceStatus as PrismaServiceStatus,
-  type PaymentMethod as PrismaPaymentMethod,
-  type EstimateStatus as PrismaEstimateStatus,
-  type SettlementStatus as PrismaSettlementStatus,
-} from "@/generated/prisma";
+import { } from "@/generated/prisma8/contract.json";
 
 // ─── Prisma model re-exports ──────────────────────────────────────────────────
-export type User = PrismaUser;
+export type User = UserPrisma;
 export type Client = PrismaClient;
 export type Supplier = PrismaSupplier;
 export type ServiceCategory = PrismaServiceCategory;

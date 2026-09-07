@@ -38,13 +38,15 @@ export async function listEstimates(
   filters: EstimateFilters,
   session: SessionUser,
 ): Promise<Estimate[]> {
-  const where: Record<string, unknown> = {};
+  const where: any = {};
 
-  // Técnicos solo ven sus propios presupuestos
+  // Técnicos solo ven sus propios presupuestos (relacionados a su orden)
   if (session.role === "TECHNICIAN") {
-    where.technicianId = session.id;
+    where.service = { technicianId: session.id };
   } else {
-    if (filters.technicianId) where.technicianId = filters.technicianId;
+    if (filters.technicianId) {
+      where.service = { technicianId: filters.technicianId };
+    }
   }
 
   if (filters.status) where.status = filters.status;
@@ -67,7 +69,7 @@ export async function getEstimateById(
 
   if (!estimate) return null;
 
-  if (session.role === "TECHNICIAN" && estimate.technicianId !== session.id) {
+  if (session.role === "TECHNICIAN" && estimate.service?.technicianId !== session.id) {
     throw new Error("Sin permisos para ver este presupuesto");
   }
 
@@ -99,20 +101,20 @@ export async function createEstimate(
     );
   }
 
-  // Solo 1 presupuesto activo por orden
+  // Solo 1 presupuesto por orden (docs/presupuestos.md)
   const existing = await prisma.estimate.findUnique({
     where: { serviceId: data.serviceId },
   });
-  if (existing && existing.status !== "REJECTED") {
+  if (existing) {
     throw new Error(
-      "Esta orden ya tiene un presupuesto activo. Debe rechazarse antes de crear uno nuevo.",
+      "Esta orden ya tiene un presupuesto. No se puede crear otro.",
     );
   }
 
   const estimate = await prisma.estimate.create({
     data: {
       serviceId: data.serviceId,
-      technicianId: session.id,
+      userId: session.role === "TECHNICIAN" ? session.id : undefined,
       clientId: service.clientId,
       amount: data.amount,
       description: data.description,
@@ -137,22 +139,24 @@ export async function createEstimate(
 
 export async function finalizeEstimate(
   id: string,
-  action: "COMPLETED" | "REJECTED",
   session: SessionUser,
 ): Promise<Estimate> {
   if (session.role !== "ADMIN")
     throw new Error(
-      "Solo un Administrador puede aprobar o rechazar presupuestos",
+      "Solo un Administrador puede finalizar presupuestos",
     );
 
   const estimate = await prisma.estimate.findUnique({ where: { id } });
   if (!estimate) throw new Error("Presupuesto no encontrado");
   if (estimate.status !== "PENDING")
-    throw new Error("El presupuesto ya fue procesado");
+    throw new Error("El presupuesto ya fue finalizado");
 
   const updated = await prisma.estimate.update({
     where: { id },
-    data: { status: action },
+    data: {
+      status: "COMPLETED",
+      completedAt: new Date(),
+    },
     include: FULL_INCLUDE,
   });
 
@@ -160,7 +164,7 @@ export async function finalizeEstimate(
     estimate.serviceId,
     session.id,
     ACTIONS.ESTIMATE_FINALIZED,
-    action === "COMPLETED" ? "Presupuesto aprobado" : "Presupuesto rechazado",
+    "Presupuesto finalizado",
   );
 
   return updated as unknown as Estimate;
