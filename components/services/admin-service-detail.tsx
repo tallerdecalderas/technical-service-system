@@ -31,6 +31,7 @@ import {
 } from "@/lib/utils";
 import { ArrowLeft, MapPin, Phone, Clock, Edit } from "lucide-react";
 import type { Service, User as UserType, ServiceStatus } from "@/types";
+import { WhatsAppActions } from "@/components/whatsapp/whatsapp-actions";
 
 interface AdminServiceDetailProps {
   service: Service;
@@ -97,12 +98,25 @@ export function AdminServiceDetail({
             Volver a servicios
           </Link>
         </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/admin/services/${service.id}/edit`}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <WhatsAppActions
+            serviceId={service.id}
+            clientName={service.client?.name || "Cliente"}
+            clientPhone={service.client?.phone}
+            scheduledDate={service.scheduledDate as unknown as string}
+            scheduledTime={service.scheduledTime}
+            address={service.address || service.client?.address || ""}
+            description={service.description || service.title}
+            technicianName={service.technician?.name || "Sin asignar"}
+            notes={service.notes}
+          />
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/admin/services/${service.id}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>

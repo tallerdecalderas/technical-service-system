@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import {
+  getServiceById,
+  updateService,
+  cancelService,
+} from "@/lib/services/service.service";
+import { updateServiceSchema } from "@/lib/validations";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,102 +13,86 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: "No autenticado" },
-        { status: 401 }
-      );
-    }
-
+    const session = await requireAuth();
     const { id } = await params;
-    const service = await prisma.service.findUnique({
-      where: { id },
-      include: {
-        technician: true,
-        client: true,
-        createdBy: true,
-        payment: true,
-      },
-    });
+    const service = await getServiceById(id, session);
 
     if (!service) {
       return NextResponse.json(
-        { success: false, error: "No encontrado" },
-        { status: 404 }
+        { success: false, error: "Orden no encontrada" },
+        { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true, data: service });
-  } catch (error) {
-    console.error("Service fetch error:", error);
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
+    const session = await requireAuth();
     const { id } = await params;
     const body = await request.json();
 
-    // Remove relational fields that could cause Prisma errors if sent directly
-    const { client, technician, createdBy, payment, ...updateData } =
-      body as any;
+    const parsed = updateServiceSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.errors[0].message },
+        { status: 400 },
+      );
+    }
 
-    const service = await prisma.service.update({
-      where: { id },
-      data: updateData,
-      include: {
-        technician: true,
-        client: true,
-        createdBy: true,
-        payment: true,
-      },
-    });
-
+    const service = await updateService(id, parsed.data, session);
     return NextResponse.json({ success: true, data: service });
-  } catch (error) {
-    console.error("Service update error:", error);
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : error.message?.includes("no encontrad")
+            ? 404
+            : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
+/**
+ * DELETE → soft delete (cancela la orden).
+ * Los servicios nunca se eliminan físicamente (docs/reglas-negocio.md).
+ */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
+    const session = await requireAuth();
     const { id } = await params;
-
-    // Delete related payments first to avoid FK constraints
-    await prisma.payment.deleteMany({ where: { serviceId: id } });
-    await prisma.service.delete({ where: { id } });
-
-    return NextResponse.json({ success: true, message: "Servicio eliminado" });
-  } catch (error) {
-    console.error("Service delete error:", error);
+    const service = await cancelService(id, session);
+    return NextResponse.json({ success: true, data: service });
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : error.message?.includes("no encontrad")
+            ? 404
+            : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }

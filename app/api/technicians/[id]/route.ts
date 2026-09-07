@@ -1,95 +1,79 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { hash } from "bcrypt";
+import { requireAuth } from "@/lib/auth";
+import {
+  updateTechnician,
+  removeTechnician,
+} from "@/lib/services/technician.service";
+import { updateTechnicianSchema } from "@/lib/validations";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
+    const session = await requireAuth();
+    if (session.role !== "ADMIN") {
       return NextResponse.json(
-        { success: false, error: "No autorizado" },
-        { status: 403 }
+        { success: false, error: "Sin permisos" },
+        { status: 403 },
       );
     }
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, phone, role, password, isActive } = body;
 
-    const data: any = {
-      name,
-      email,
-      phone,
-      role,
-      isActive,
-    };
-
-    if (password) {
-      data.passwordHash = await hash(password, 10);
+    const parsed = updateTechnicianSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.errors[0].message },
+        { status: 400 },
+      );
     }
 
-    const technician = await prisma.user.update({
-      where: { id },
-      data,
-    });
-
+    const technician = await updateTechnician(id, parsed.data);
     return NextResponse.json({ success: true, data: technician });
-  } catch (error) {
-    console.error("Error updating technician:", error);
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : error.message?.includes("no encontrad")
+            ? 404
+            : 500;
     return NextResponse.json(
-      { success: false, error: "Error al actualizar técnico" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
+    const session = await requireAuth();
+    if (session.role !== "ADMIN") {
       return NextResponse.json(
-        { success: false, error: "No autorizado" },
-        { status: 403 }
+        { success: false, error: "Sin permisos" },
+        { status: 403 },
       );
     }
 
     const { id } = await params;
-
-    // Check if technician has related data
-    const servicesCount = await prisma.service.count({
-      where: { technicianId: id },
-    });
-
-    const paymentsCount = await prisma.payment.count({
-      where: { technicianId: id },
-    });
-
-    if (servicesCount > 0 || paymentsCount > 0) {
-      // Soft delete if they have history
-      await prisma.user.update({
-        where: { id },
-        data: { isActive: false },
-      });
-    } else {
-      // Hard delete if clean
-      await prisma.user.delete({
-        where: { id },
-      });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting technician:", error);
+    await removeTechnician(id);
+    return NextResponse.json({ success: true, message: "Técnico eliminado" });
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("permisos")
+          ? 403
+          : error.message?.includes("no encontrad")
+            ? 404
+            : 500;
     return NextResponse.json(
-      { success: false, error: "Error al eliminar técnico" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }

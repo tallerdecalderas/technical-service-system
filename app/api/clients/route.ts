@@ -1,101 +1,42 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import { listClients, createClient } from "@/lib/services/client.service";
+import { createClientSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: "No autenticado" },
-        { status: 401 }
-      );
-    }
-
-    const clients = await prisma.client.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    await requireAuth();
+    const clients = await listClients();
     return NextResponse.json({ success: true, data: clients });
-  } catch (error) {
-    console.error("Clients fetch error:", error);
+  } catch (error: any) {
+    const status = error.message === "Unauthorized" ? 401 : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
+    await requireAuth();
     const body = await request.json();
-    const { name, email, phone, address, city, notes } = body;
 
-    if (!name || !phone || !address) {
+    const parsed = createClientSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Datos incompletos" },
-        { status: 400 }
+        { success: false, error: parsed.error.errors[0].message },
+        { status: 400 },
       );
     }
 
-    const client = await prisma.client.create({
-      data: {
-        name,
-        email,
-        phone,
-        address,
-        city,
-        notes,
-      },
-    });
-
-    return NextResponse.json({ success: true, data: client });
-  } catch (error) {
-    console.error("Client create error:", error);
+    const client = await createClient(parsed.data);
+    return NextResponse.json({ success: true, data: client }, { status: 201 });
+  } catch (error: any) {
+    const status = error.message === "Unauthorized" ? 401 : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const { id } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: "Datos incompletos" },
-        { status: 400 }
-      );
-    }
-
-    const client = await prisma.client.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true, data: client });
-  } catch (error) {
-    console.error("Client delete error:", error);
-    return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }

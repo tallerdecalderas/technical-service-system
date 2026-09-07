@@ -1,0 +1,348 @@
+// use prisma-next
+// Prisma 8 RC — sintaxis correcta: Decimal sin precisión, temporal.updatedAt(), Uuid nativo
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+enum Role {
+  @@type("pg/text@1")
+
+  ADMIN
+  TECHNICIAN
+}
+
+enum ServiceStatus {
+  @@type("pg/text@1")
+
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  CLOSED
+}
+
+enum PaymentMethod {
+  @@type("pg/text@1")
+
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+enum EstimateStatus {
+  @@type("pg/text@1")
+
+  PENDING
+  COMPLETED
+}
+
+enum SettlementStatus {
+  @@type("pg/text@1")
+
+  PENDING
+  PAID
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+model User {
+  id                      Uuid             @id @default(uuid(7))
+  email                   String           @unique
+  name                    String
+  role                    Role
+  avatar                  String?
+  passwordHash            String
+  phone                   String?
+  dni                     String?
+  isActive                Boolean          @default(true)
+  commissionRate          Decimal          @default(0.5000) // variable por técnico (ej: 0.50 = 50%)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @default(now())
+
+  // Relations
+  servicesAsTechnician    Service[]        @relation("TechnicianServices")
+  servicesCreated         Service[]        @relation("CreatedServices")
+  servicesClosed          Service[]        @relation("ClosedServices")
+  payments                Payment[]        @relation("TechnicianPayments")
+  estimates               Estimate[]
+  settlementsAsTechnician Settlement[]     @relation("TechnicianSettlements")
+  settlementsLiquidated   Settlement[]     @relation("LiquidatedSettlements")
+  activityLogs            ActivityLog[]
+  integrationLogs         IntegrationLog[]
+}
+
+model Company {
+  id          Uuid         @id @default(uuid(7))
+  name        String       @unique
+  type        String // ej: "TALLER_DE_CALDERAS"
+  logo        String?
+  icon        String?
+  phone       String?
+  address     String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now())
+
+  // Relations
+  services    Service[]
+  settlements Settlement[]
+}
+
+model Client {
+  id        Uuid       @id @default(uuid(7))
+  name      String?
+  email     String?    @unique
+  phone     String     @unique
+  address   String?
+  locality  String? // ciudad / localidad
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now())
+
+  // Relations
+  services  Service[]
+  estimates Estimate[]
+}
+
+model ServiceCategory {
+  id        Uuid      @id @default(uuid(7))
+  name      String    @unique
+  color     String?
+  icon      String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+
+  // Relations
+  services  Service[]
+}
+
+model Service {
+  id                Uuid             @id @default(uuid(7))
+  orderNumber       Int              @unique @default(autoincrement())
+  companyId         Uuid
+  clientId          Uuid
+  categoryId        Uuid?
+  technicianId      Uuid?
+  createdById       Uuid
+  closedById        Uuid?
+  title             String
+  description       String?
+  status            ServiceStatus    @default(PENDING)
+  scheduledDate     DateTime
+  scheduledTime     String
+  address           String?
+  locality          String?
+  notes             String?
+  expectedAmount    Decimal?
+  completedAt       DateTime?
+  closedAt          DateTime?
+  completedPhotoUrl String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now())
+
+  // Relations
+  company           Company          @relation(fields:[companyId], references:[id])
+  client            Client           @relation(fields:[clientId], references:[id])
+  category          ServiceCategory? @relation(fields:[categoryId], references:[id])
+  technician        User?            @relation("TechnicianServices", fields:[technicianId], references:[id])
+  createdBy         User             @relation("CreatedServices", fields:[createdById], references:[id])
+  closedBy          User?            @relation("ClosedServices", fields:[closedById], references:[id])
+  payment           Payment?
+  estimate          Estimate?
+  activityLogs      ActivityLog[]
+
+  @@index([technicianId, scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([clientId])
+  @@index([categoryId])
+  @@index([companyId])
+  @@index([createdById])
+  @@index([closedById])
+}
+
+model Payment {
+  id              Uuid          @id @default(uuid(7))
+  serviceId       Uuid          @unique
+  technicianId    Uuid
+  settlementId    Uuid?
+  method          PaymentMethod
+  amountPaid      Decimal
+  sparePartsCost  Decimal       @default(0)
+  debtAmount      Decimal       @default(0)
+  hasDebt         Boolean       @default(false)
+  receiptPhotoUrl String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now())
+
+  // Relations
+  service         Service       @relation(fields:[serviceId], references:[id])
+  technician      User          @relation("TechnicianPayments", fields:[technicianId], references:[id])
+  settlement      Settlement?   @relation(fields:[settlementId], references:[id])
+  parts           PaymentPart[]
+
+  @@index([technicianId])
+  @@index([settlementId])
+  @@index([createdAt])
+}
+
+model PaymentPart {
+  id              Uuid           @id @default(uuid(7))
+  paymentId       Uuid
+  supplierId      Uuid?
+  inventoryItemId Uuid? // referencia al catálogo de inventario
+  name            String
+  description     String?
+  quantity        Int
+  unitPrice       Decimal
+  totalPrice      Decimal
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now())
+
+  // Relations
+  payment         Payment        @relation(fields:[paymentId], references:[id], onDelete: Cascade)
+  supplier        Supplier?      @relation(fields:[supplierId], references:[id])
+  inventoryItem   InventoryItem? @relation(fields:[inventoryItemId], references:[id])
+
+  @@index([paymentId])
+  @@index([supplierId])
+  @@index([inventoryItemId])
+}
+
+model Supplier {
+  id             Uuid            @id @default(uuid(7))
+  name           String          @unique
+  phone          String?
+  email          String?
+  notes          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now())
+
+  // Relations
+  paymentParts   PaymentPart[]
+  inventoryItems InventoryItem[]
+}
+
+model InventoryItem {
+  id           Uuid          @id @default(uuid(7))
+  supplierId   Uuid?
+  code         String?       @unique
+  name         String
+  description  String?
+  unit         String?
+  costPrice    Decimal // precio de costo (administración ve este)
+  sellPrice    Decimal // precio de venta al cliente
+  techPrice    Decimal // precio lista técnico (+% sobre sell)
+  isActive     Boolean       @default(true)
+  importedAt   DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now())
+
+  // Relations
+  supplier     Supplier?     @relation(fields:[supplierId], references:[id])
+  paymentParts PaymentPart[]
+
+  @@index([supplierId])
+  @@index([name])
+  @@index([code])
+}
+
+model Estimate {
+  id            Uuid           @id @default(uuid(7))
+  serviceId     Uuid           @unique
+  userId        Uuid? // técnico que creó el presupuesto
+  clientId      Uuid?
+  completedById Uuid? // admin que finalizó
+  amount        Decimal
+  description   String?
+  notes         String?
+  status        EstimateStatus @default(PENDING)
+  completedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now())
+
+  // Relations
+  service       Service        @relation(fields:[serviceId], references:[id], onDelete: Cascade)
+  user          User?          @relation(fields:[userId], references:[id])
+  client        Client?        @relation(fields:[clientId], references:[id])
+
+  @@index([status])
+  @@index([serviceId])
+  @@index([userId])
+}
+
+model Settlement {
+  id             Uuid             @id @default(uuid(7))
+  technicianId   Uuid
+  companyId      Uuid? // empresa asociada (opcional, para filtrar por empresa)
+  liquidatedById Uuid?
+  // Período libre: admin elige startDate y endDate por cada rendición
+  startDate      DateTime
+  endDate        DateTime
+  label          String? // ej: "Semana 31 - Julio 2026"
+  commissionRate Decimal // heredado del commissionRate del técnico al momento de generar
+  ordersCount    Int              @default(0)
+  paymentsCount  Int              @default(0)
+  totalCollected Decimal          @default(0)
+  totalParts     Decimal          @default(0)
+  netAmount      Decimal          @default(0)
+  techCommission Decimal          @default(0)
+  compCommission Decimal          @default(0)
+  status         SettlementStatus @default(PENDING)
+  notes          String?
+  liquidatedAt   DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+
+  // Relations
+  technician     User             @relation("TechnicianSettlements", fields:[technicianId], references:[id])
+  liquidatedBy   User?            @relation("LiquidatedSettlements", fields:[liquidatedById], references:[id])
+  company        Company?         @relation(fields:[companyId], references:[id])
+  payments       Payment[]
+
+  @@index([technicianId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model ActivityLog {
+  id          Uuid     @id @default(uuid(7))
+  serviceId   Uuid
+  userId      Uuid
+  action      String
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  service     Service  @relation(fields:[serviceId], references:[id], onDelete: Cascade)
+  user        User     @relation(fields:[userId], references:[id])
+
+  @@index([serviceId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model IntegrationLog {
+  id        Uuid     @id @default(uuid(7))
+  type      String
+  entity    String
+  entityId  Uuid
+  action    String
+  result    String
+  message   String?
+  userId    Uuid?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User?    @relation(fields:[userId], references:[id])
+
+  @@index([type])
+  @@index([entityId])
+  @@index([userId])
+  @@index([createdAt])
+}

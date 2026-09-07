@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import {
+  getClientById,
+  updateClient,
+  removeClient,
+} from "@/lib/services/client.service";
+import { updateClientSchema } from "@/lib/validations";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,102 +13,75 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: "No autenticado" },
-        { status: 401 }
-      );
-    }
-
+    await requireAuth();
     const { id } = await params;
-    const client = await prisma.client.findUnique({ where: { id } });
+    const client = await getClientById(id);
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: "No encontrado" },
-        { status: 404 }
+        { success: false, error: "Cliente no encontrado" },
+        { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true, data: client });
-  } catch (error) {
-    console.error("Client fetch error:", error);
+  } catch (error: any) {
+    const status = error.message === "Unauthorized" ? 401 : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
+    await requireAuth();
     const { id } = await params;
     const body = await request.json();
 
-    const client = await prisma.client.update({
-      where: { id },
-      data: body,
-    });
-
-    if (!client) {
+    const parsed = updateClientSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "No encontrado" },
-        { status: 404 }
+        { success: false, error: parsed.error.errors[0].message },
+        { status: 400 },
       );
     }
 
+    const client = await updateClient(id, parsed.data);
     return NextResponse.json({ success: true, data: client });
-  } catch (error) {
-    console.error("Client update error:", error);
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("no encontrad")
+          ? 404
+          : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Sin permisos" },
-        { status: 403 }
-      );
-    }
-
+    await requireAuth();
     const { id } = await params;
-
-    const client = await prisma.client.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true, data: client });
-  } catch (error) {
-    console.error("Client delete error:", error);
-    // Check for foreign key constraints
-    if ((error as any).code === "P2003") {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "No se puede eliminar el cliente porque tiene registros asociados",
-        },
-        { status: 400 }
-      );
-    }
+    await removeClient(id);
+    return NextResponse.json({ success: true, message: "Cliente eliminado" });
+  } catch (error: any) {
+    const status =
+      error.message === "Unauthorized"
+        ? 401
+        : error.message?.includes("no encontrad")
+          ? 404
+          : error.message?.includes("servicios asociados")
+            ? 400
+            : 500;
     return NextResponse.json(
-      { success: false, error: "Error interno" },
-      { status: 500 }
+      { success: false, error: error.message ?? "Error interno" },
+      { status },
     );
   }
 }
