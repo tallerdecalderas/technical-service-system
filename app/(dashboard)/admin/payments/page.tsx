@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/prisma";
-import { PaymentsTable } from "@/components/payments/payments-table";
-import { Role } from "@/generated/prisma";
-import { serialize } from "@/lib/utils";
+import { prisma } from "@/lib/prisma"
+import { PaymentsTable } from "@/components/payments/payments-table"
+import { Role } from "@/generated/prisma/client"
+import { serialize } from "@/lib/utils"
 
 // Cache for 30 seconds - payments data updates frequently
-export const revalidate = 30;
+export const revalidate = 30
 
 export default async function AdminPaymentsPage() {
   const payments = await prisma.payment.findMany({
@@ -17,10 +17,10 @@ export default async function AdminPaymentsPage() {
       technician: true,
     },
     orderBy: { createdAt: "desc" },
-  });
+  })
   const technicians = await prisma.user.findMany({
     where: { role: Role.TECHNICIAN },
-  });
+  })
 
   return (
     <div className="space-y-6">
@@ -36,5 +36,5 @@ export default async function AdminPaymentsPage() {
         technicians={serialize(technicians)}
       />
     </div>
-  );
+  )
 }

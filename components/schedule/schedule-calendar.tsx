@@ -14,6 +14,7 @@ import {
 import { formatTime, getStatusColor } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import type { Service, User } from "@/types";
+import { WhatsAppActions } from "@/components/whatsapp/whatsapp-actions";
 
 interface ScheduleCalendarProps {
   services: Service[];
@@ -57,14 +58,14 @@ export function ScheduleCalendar({
     }
     const serviceDate = new Date(service.scheduledDate);
     return weekDates.some(
-      (d) => d.toDateString() === serviceDate.toDateString()
+      (d) => d.toDateString() === serviceDate.toDateString(),
     );
   });
 
   const getServicesForDate = (date: Date) => {
     return filteredServices
       .filter(
-        (s) => new Date(s.scheduledDate).toDateString() === date.toDateString()
+        (s) => new Date(s.scheduledDate).toDateString() === date.toDateString(),
       )
       .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
   };
@@ -178,28 +179,54 @@ export function ScheduleCalendar({
                 ) : (
                   <div className="space-y-2">
                     {dayServices.map((service) => (
-                      <Link
+                      <div
                         key={service.id}
-                        href={`${basePath}/${service.id}`}
-                        className={`block rounded-md p-2 text-xs transition-colors hover:opacity-80 ${getStatusColor(
-                          service.status
+                        className={`rounded-md p-2 text-xs transition-colors hover:opacity-80 ${getStatusColor(
+                          service.status,
                         )}`}
                       >
-                        <p className="font-medium truncate">
-                          {formatTime(service.scheduledTime)}
-                        </p>
-                        <p className="truncate">{service.title}</p>
-                        {isAdminView && service.technician && (
-                          <p className="truncate text-[10px] opacity-80">
-                            {service.technician.name}
-                          </p>
-                        )}
-                        {!isAdminView && service.client && (
-                          <p className="truncate text-[10px] opacity-80">
-                            {service.client.name}
-                          </p>
-                        )}
-                      </Link>
+                        <div className="flex items-start justify-between gap-1">
+                          <Link
+                            href={`${basePath}/${service.id}`}
+                            className="flex-1 min-w-0"
+                          >
+                            <p className="font-medium truncate">
+                              {formatTime(service.scheduledTime)}
+                            </p>
+                            <p className="truncate">{service.title}</p>
+                            {isAdminView && service.technician && (
+                              <p className="truncate text-[10px] opacity-80">
+                                {service.technician.name}
+                              </p>
+                            )}
+                            {!isAdminView && service.client && (
+                              <p className="truncate text-[10px] opacity-80">
+                                {service.client.name}
+                              </p>
+                            )}
+                          </Link>
+                          {isAdminView && (
+                            <WhatsAppActions
+                              compact
+                              serviceId={service.id}
+                              clientName={service.client?.name || "Cliente"}
+                              clientPhone={service.client?.phone}
+                              scheduledDate={
+                                service.scheduledDate as unknown as string
+                              }
+                              scheduledTime={service.scheduledTime}
+                              address={
+                                service.address || service.client?.address || ""
+                              }
+                              description={service.description || service.title}
+                              technicianName={
+                                service.technician?.name || "Sin asignar"
+                              }
+                              notes={service.notes}
+                            />
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}

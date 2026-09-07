@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2,
+  ChevronDown,
+  MessageCircle,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
 import type { Client, User, Service } from "@/types";
 import { ClientSearchInput } from "@/components/clients/client-search-input";
+import {
+  generateWhatsAppMessage,
+  buildWhatsAppUrl,
+  type WhatsAppTemplateVars,
+} from "@/lib/helpers/whatsapp";
 
 interface ServiceFormProps {
   clients: Client[];
@@ -53,6 +70,74 @@ export function ServiceForm({
       : "",
   });
 
+  // Ref para la acción post-guardado de WhatsApp
+  const whatsappActionRef = useRef<"none" | "copy" | "open">("none");
+
+  function getSelectedClient() {
+    return clientsList.find((c) => c.id === formData.clientId);
+  }
+
+  function getSelectedTechnician() {
+    return technicians.find((t) => t.id === formData.technicianId);
+  }
+
+  function buildWhatsAppMsg(serviceId: string): string {
+    const client = getSelectedClient();
+    const tech = getSelectedTechnician();
+    const vars: WhatsAppTemplateVars = {
+      cliente: client?.name || "Cliente",
+      numero: serviceId.slice(0, 8).toUpperCase(),
+      fecha: new Date(`${formData.scheduledDate}T12:00:00`).toLocaleDateString(
+        "es-AR",
+        {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        },
+      ),
+      hora: formData.scheduledTime,
+      direccion: formData.address || client?.address || "A confirmar",
+      descripcion: formData.description || formData.title,
+      tecnico: tech?.name || "Sin asignar",
+      observaciones: formData.notes || undefined,
+    };
+    return generateWhatsAppMessage(vars);
+  }
+
+  async function handleWhatsAppAction(serviceId: string) {
+    const action = whatsappActionRef.current;
+    if (action === "none") return;
+
+    const client = getSelectedClient();
+    const message = buildWhatsAppMsg(serviceId);
+
+    try {
+      if (action === "copy") {
+        await navigator.clipboard.writeText(message);
+        toast.success("Mensaje WhatsApp copiado al portapapeles");
+      } else if (action === "open") {
+        if (!client?.phone) {
+          toast.error("El cliente no tiene teléfono registrado");
+          return;
+        }
+        const url = buildWhatsAppUrl(client.phone, message);
+        window.open(url, "_blank");
+      }
+      // Log la acción
+      await fetch("/api/integrations/whatsapp/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceId,
+          action: action === "copy" ? "COPIED" : "OPENED",
+        }),
+      });
+    } catch {
+      // No bloquear la UX por el log
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -79,6 +164,14 @@ export function ServiceForm({
         throw new Error(data.error || "Error al guardar");
       }
 
+      const result = await res.json();
+      const savedServiceId = result.data?.id || service?.id;
+
+      // Ejecutar acción WhatsApp si corresponde
+      if (savedServiceId) {
+        await handleWhatsAppAction(savedServiceId);
+      }
+
       toast.success(service ? "Servicio actualizado" : "Servicio creado");
       router.push("/admin/services");
       router.refresh();
@@ -88,6 +181,7 @@ export function ServiceForm({
       );
     } finally {
       setLoading(false);
+      whatsappActionRef.current = "none";
     }
   }
 
@@ -249,10 +343,54 @@ export function ServiceForm({
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1" disabled={loading}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={loading}
+                onClick={() => {
+                  whatsappActionRef.current = "none";
+                }}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {service ? "Guardar Cambios" : "Crear Servicio"}
+                {service ? "Guardar Cambios" : "Guardar"}
               </Button>
+              {!service && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={loading}
+                      className="gap-1 text-green-700 border-green-200 hover:bg-green-50"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        whatsappActionRef.current = "copy";
+                        const form = document.querySelector("form");
+                        if (form) form.requestSubmit();
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Guardar y Copiar WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        whatsappActionRef.current = "open";
+                        const form = document.querySelector("form");
+                        if (form) form.requestSubmit();
+                      }}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Guardar y Abrir WhatsApp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </form>
         </CardContent>
