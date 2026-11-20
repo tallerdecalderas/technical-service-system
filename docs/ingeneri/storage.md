@@ -1,6 +1,6 @@
 # Almacenamiento de Archivos y Objetos — Cloudflare R2
 
-**Estado:** decisión arquitectónica aprobada; implementación backend y migración SQL pendientes.  
+**Estado:** decisión arquitectónica aprobada; implementación backend en Go y migración SQL completadas; pendiente integración UI completa.  
 **Proveedor de producción:** Cloudflare R2 (API compatible con Amazon S3).  
 **Servicios de soporte:** PostgreSQL (metadatos y relaciones en Supabase), Go (autorización, firma y ciclo de vida).
 
@@ -26,7 +26,7 @@ Cloudflare R2 es el proveedor exclusivo para el almacenamiento de objetos binari
                                │
                                ▼
                       Supabase PostgreSQL
-                   (Tabla `stored_objects`:
+                   (Tabla `storedObject`:
                     metadatos, estado y FKs)
 ```
 
@@ -43,7 +43,7 @@ Para agilizar el desarrollo inicial sin depender de infraestructura externa desd
 
 * **Modo Local (`STORAGE_PROVIDER=local`):** Go usa un adaptador simple basado en el sistema de archivos local (`adapters/storage/filesystem`), guardando los binarios en una carpeta en disco (`./uploads`). La URL devuelta para carga y descarga apunta a endpoints locales de la propia API Go.
 * **Modo Producción (`STORAGE_PROVIDER=r2`):** Go usa el adaptador S3-compatible (`adapters/storage/s3compatible`) contra el endpoint de Cloudflare R2 con URLs prefirmadas reales.
-* **Desacoplamiento total:** Ambas implementaciones cumplen la misma interfaz `ObjectStorage`. El caso de uso, la base de datos `stored_objects` y el frontend operan exactamente con el mismo flujo; la conmutación de `local` a `r2` se realiza únicamente cambiando la variable de entorno `STORAGE_PROVIDER`.
+* **Desacoplamiento total:** Ambas implementaciones cumplen la misma interfaz `ObjectStorage`. El caso de uso, la base de datos `storedObject` y el frontend operan exactamente con el mismo flujo; la conmutación de `local` a `r2` se realiza únicamente cambiando la variable de entorno `STORAGE_PROVIDER`.
 
 ---
 
@@ -56,13 +56,13 @@ sequenceDiagram
     autonumber
     actor U as Usuario / Navegador
     participant G as API Go
-    participant DB as PostgreSQL (stored_objects)
+    participant DB as PostgreSQL (storedObject)
     participant R2 as Cloudflare R2
 
     U->>G: POST /api/v1/storage/signed-url (entity, category, mime, expectedSize, filename)
     Note over G: Valida sesión, permisos, empresa, allowlist MIME y tamaño máximo
     G->>G: Genera objectId, uploadAttemptId y objectKey
-    G->>DB: INSERT stored_objects (status='PENDING', expires_at)
+    G->>DB: INSERT storedObject (status='PENDING', expires_at)
     G->>R2: PresignPutObject (If-None-Match: *, x-amz-meta-upload-id)
     G-->>U: 201 Created (uploadUrl, method=PUT, headers, objectId)
 
@@ -73,7 +73,7 @@ sequenceDiagram
     Note over G: Re-autoriza registro PENDING
     G->>R2: HeadObject(bucket, key)
     Note over G: Valida Content-Length, Content-Type y metadata upload-id
-    G->>DB: UPDATE stored_objects SET status='AVAILABLE', confirmed_at=NOW()
+    G->>DB: UPDATE storedObject SET status='AVAILABLE', confirmed_at=NOW()
     G-->>U: 200 OK (objeto asociado y disponible)
 ```
 
@@ -89,12 +89,12 @@ sequenceDiagram
     autonumber
     actor U as Usuario / Navegador
     participant G as API Go
-    participant DB as PostgreSQL (stored_objects)
+    participant DB as PostgreSQL (storedObject)
     participant R2 as Cloudflare R2
 
     U->>G: GET /api/v1/storage/objects/{id}/download-url
     Note over G: Valida sesión y permiso sobre la entidad relacionada
-    G->>DB: SELECT stored_objects WHERE id=$1 AND company_id=$2 AND status='AVAILABLE'
+    G->>DB: SELECT storedObject WHERE id=$1 AND company_id=$2 AND status='AVAILABLE'
     G->>R2: PresignGetObject(bucket, key, expires=2m)
     G-->>U: 200 OK (downloadUrl, expiresAt)
     U->>R2: GET directo a R2
@@ -102,7 +102,7 @@ sequenceDiagram
 ```
 
 1. **Solicitud:** El cliente pide ver o descargar un archivo.
-2. **Autorización:** Go consulta `stored_objects` validando aislamiento por `company_id` y relación con la entidad.
+2. **Autorización:** Go consulta `storedObject` validando aislamiento por `company_id` y relación con la entidad.
 3. **Emisión de descarga:** Go firma una URL `GET` con TTL corto (2 minutos).
 4. **Entrega:** El navegador obtiene el binario directamente desde R2. Las imágenes seguras se entregan `inline`; los documentos sensibles como `attachment`.
 
@@ -113,19 +113,19 @@ sequenceDiagram
     autonumber
     actor U as Usuario / Navegador
     participant G as API Go
-    participant DB as PostgreSQL (stored_objects)
+    participant DB as PostgreSQL (storedObject)
     participant W as Worker / Cron Job
     participant R2 as Cloudflare R2
 
     U->>G: DELETE /api/v1/storage/objects/{id}
     Note over G: Valida permisos de eliminación sobre la entidad
-    G->>DB: UPDATE stored_objects SET status='DELETE_PENDING'
+    G->>DB: UPDATE storedObject SET status='DELETE_PENDING'
     G-->>U: 202 Accepted
 
     Note over W: Espera vencimiento de upload_url_expires_at + margen
     W->>DB: SELECT WHERE status='DELETE_PENDING' AND upload_url_expires_at < NOW()
     W->>R2: DeleteObject(bucket, key)
-    W->>DB: UPDATE stored_objects SET status='DELETED', deleted_at=NOW()
+    W->>DB: UPDATE storedObject SET status='DELETED', deleted_at=NOW()
 ```
 
 1. **Baja lógica inicial:** Se marca `DELETE_PENDING` en PostgreSQL y se retorna `202 Accepted`.
@@ -154,9 +154,9 @@ companies/{companyId}/services/{serviceId}/{category}/{objectId}
 
 ---
 
-## 4. Metadatos en PostgreSQL: tabla `stored_objects`
+## 4. Metadatos en PostgreSQL: tabla `public."storedObject"`
 
-La persistencia de metadatos se implementa en la tabla `stored_objects` (pendiente de migración por el operador):
+La persistencia de metadatos se implementa en la tabla física `public."storedObject"` (definida en `supabase/migrations/20261113000000_add_stored_objects.sql`):
 
 | Campo | Tipo | Descripción |
 |---|---|---|

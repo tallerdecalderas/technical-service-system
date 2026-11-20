@@ -2,7 +2,7 @@
 
 **Fase:** 7.  
 **Proveedor de producción seleccionado:** Cloudflare R2.  
-**Estado:** decisión arquitectónica aprobada; implementación backend y migración SQL pendientes.
+**Estado:** decisión arquitectónica aprobada; implementación backend y migración SQL completadas; pendiente integración UI completa.
 
 ## 1. Decisión y límites
 
@@ -19,7 +19,7 @@ Responsabilidades:
 - `application`: casos de uso de solicitar carga, confirmar, emitir descarga y eliminar.
 - `ports/outbound`: interfaz `ObjectStorage` y tipos propios (`ObjectRef`, `UploadSpec`, `DownloadSpec`, `ObjectInfo`, `PresignedRequest`).
 - `adapters/storage/s3compatible`: implementación con AWS SDK for Go v2 configurada para Cloudflare R2.
-- `adapters/postgres`: repositorio de metadatos `stored_objects`.
+- `adapters/postgres`: repositorio de metadatos `storedObject` (`public."storedObject"`).
 - `adapters/http`: DTOs, autenticación, CSRF, límites HTTP y traducción de errores.
 - `config`: carga y validación de credenciales, endpoint, bucket y TTL.
 

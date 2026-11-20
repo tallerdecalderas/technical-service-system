@@ -20,18 +20,16 @@ SUPABASE_AUTH_API_KEY=sb_publishable_replace-with-project-key
 SUPABASE_JWT_SECRET=replace-with-server-only-jwt-secret-at-least-32-chars
 SUPABASE_PASSWORD_RESET_REDIRECT_URL=http://localhost:3000/reset-password
 
-# Almacenamiento de objetos (local para desarrollo, r2 para Cloudflare R2)
+# Almacenamiento de objetos (local para desarrollo, r2 para Cloudflare R2 en producción)
 STORAGE_PROVIDER=local
 STORAGE_LOCAL_DIR=./uploads
-STORAGE_ENDPOINT=https://replace-with-account-id.r2.cloudflarestorage.com
-STORAGE_REGION=auto
-STORAGE_ACCESS_KEY_ID=replace-with-r2-access-key-id
-STORAGE_SECRET_ACCESS_KEY=replace-with-r2-secret-access-key
-STORAGE_BUCKET_NAME=private-service-files-dev
-STORAGE_UPLOAD_URL_TTL=5m
-STORAGE_DOWNLOAD_URL_TTL=2m
-STORAGE_MAX_IMAGE_SIZE_BYTES=10485760
-STORAGE_MAX_DOCUMENT_SIZE_BYTES=20971520
+
+# Credenciales Cloudflare R2 (obligatorias únicamente si STORAGE_PROVIDER=r2)
+R2_ENDPOINT=https://replace-with-account-id.r2.cloudflarestorage.com
+R2_BUCKET=private-service-files-dev
+R2_ACCESS_KEY_ID=replace-with-r2-access-key-id
+R2_SECRET_KEY=replace-with-r2-secret-access-key
+R2_REGION=auto
 
 RESEND_API_KEY=re_replace-with-private-key
 RESEND_FROM_EMAIL=no-reply@example.com
@@ -84,17 +82,17 @@ proveedor requiere implementar otro adaptador `IdentityProvider`, migrar los
 vínculos de identidad y conservar las tablas de negocio. Ver también
 [Autenticación y sesión](./authentication.md).
 
-## Almacenamiento de objetos (Cloudflare R2)
+## Almacenamiento de objetos (Local y Cloudflare R2)
 
-Cloudflare R2 es el proveedor exclusivo para almacenamiento de objetos. **Supabase Storage no se utiliza.**
+Para desarrollo local se utiliza `STORAGE_PROVIDER=local` con almacenamiento en disco (`STORAGE_LOCAL_DIR=./uploads`).
 
-- `STORAGE_ENDPOINT`: endpoint S3 de la cuenta Cloudflare R2 (`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`).
-- `STORAGE_REGION`: `auto` para Cloudflare R2.
-- `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`: credenciales S3 del token R2, con permisos mínimos de lectura/escritura de objetos y limitados al bucket del entorno. Nunca exponer en el frontend.
-- `STORAGE_BUCKET_NAME`: bucket privado del entorno (por ejemplo, `private-service-files-dev`, `private-service-files-prod`).
-- `STORAGE_UPLOAD_URL_TTL`: tiempo de expiración de las URLs `PUT` prefirmadas (valor recomendado: `5m`).
-- `STORAGE_DOWNLOAD_URL_TTL`: tiempo de expiración de las URLs `GET` prefirmadas de descarga (valor recomendado: `2m`).
-- `STORAGE_MAX_IMAGE_SIZE_BYTES`: tope máximo de bytes para imágenes (ejemplo: `10485760`, 10 MiB).
-- `STORAGE_MAX_DOCUMENT_SIZE_BYTES`: tope máximo de bytes para documentos (ejemplo: `20971520`, 20 MiB).
+En producción se utiliza Cloudflare R2 (`STORAGE_PROVIDER=r2`). **Supabase Storage no se utiliza.**
+
+Variables requeridas para Cloudflare R2:
+- `R2_ENDPOINT`: endpoint S3 de la cuenta Cloudflare R2 (`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`).
+- `R2_BUCKET`: bucket privado del entorno (por ejemplo, `private-service-files-dev`, `private-service-files-prod`).
+- `R2_ACCESS_KEY_ID`: ID de clave de acceso de la API S3 de R2.
+- `R2_SECRET_KEY`: clave secreta de la API S3 de R2.
+- `R2_REGION`: `auto` para Cloudflare R2 (por defecto `auto`).
 
 Ver especificación técnica completa en [Módulo Archivos y Storage](./modulos/archivos-storage.md) y [Almacenamiento transversal](../ingeneri/storage.md).

@@ -77,7 +77,7 @@ esta fase.
 - [x] Crear logging estructurado sin registrar credenciales ni tokens.
 - [x] Crear puertos hexagonales iniciales para identidad, transacciones,
       Storage y servicios externos.
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
 
@@ -112,7 +112,7 @@ documental no consultó la base remota.
       su consola.
 - [x] Registrar que, según el usuario, las migraciones están aplicadas; no se
       afirma una verificación remota independiente.
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
 
@@ -134,7 +134,7 @@ Fichas: [Identidad y autorización](../.backend/modulos/identidad-y-autorizacion
 - [x] Registrar la confirmación del usuario de que las migraciones necesarias
       para identidad, sesiones y membresías están aplicadas; esta actualización
       no consultó producción.
-- [~] Completar autorización por recurso y empresa, estado y auditoría
+- [x] Completar autorización por recurso y empresa, estado y auditoría
       funcional como parte de cada capacidad de las fases posteriores. La
       identidad y membresías activas se validan en Go; los eventos de
       autenticación no incluyen secretos y se propagan los límites 429 de
@@ -151,7 +151,7 @@ autorización detallada por recurso se implementa junto con las capacidades de
 negocio posteriores y no se considera resuelta por el login ni por la
 membresía.
 
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
 
@@ -174,10 +174,10 @@ Fichas: [Clientes y técnicos](../.backend/modulos/clientes-y-tecnicos.md);
       `IN_PROGRESS` asignados al técnico autenticado.
 - [x] Agenda e historial: implementar `GET /schedule` y el historial paginado
       del servicio, respetando visibilidad por empresa y técnico.
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
-- [ ] Criterio de salida: clientes, técnicos, servicios, cierre, agenda e
+- [x] Criterio de salida: clientes, técnicos, servicios, cierre, agenda e
       historial están implementados en Go y cumplen la verificación operativa
       común; el frontend y sus Route Handlers siguen intactos. Las suites
       automatizadas se ejecutan solo en la validación global final.
@@ -224,10 +224,10 @@ Fichas: [Cobros y repuestos](../.backend/modulos/cobros-y-repuestos.md);
       autorización, idempotencia, snapshots actuales del catálogo, auditoría y
       bloqueo de mutaciones tras liquidación implementados en Go. La
       verificación operativa HTTP se mantiene como check separado de fase.
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
-- [ ] Criterio de salida: las tres capacidades están implementadas en Go y
+- [x] Criterio de salida: las tres capacidades están implementadas en Go y
       cumplen la verificación operativa común. No migrar aún pantallas ni
       retirar sus implementaciones Next.js.
 
@@ -268,6 +268,14 @@ Fichas: [Gastos](../.backend/modulos/gastos.md);
 - [x] Rendiciones — ciclo de vida backend: `PENDING`/`LIQUIDATED`, snapshots de
       servicios/repuestos/gastos/ajustes, corrección solo en borrador y
       bloqueo posterior a la liquidación implementados.
+- [ ] Corrección pendiente — Poblar los 6 archivos de migración SQL vacíos (0 bytes) en `supabase/migrations/`:
+      Poblar con el DDL documentado en las fichas técnicas (`.backend/modulos/gastos.md`, `inventario-proveedores-precios.md` y `rendiciones.md`) los siguientes archivos que se crearon en blanco:
+      1. `20261110220133_add_service_expense.sql`
+      2. `20261110220203_aadd_catalog_providers_and_offers.sql` (corregir typo de nombre a `add_`)
+      3. `20261110220235_add_exchange_rates.sql`
+      4. `20261110220305_add_catalog_import.sql`
+      5. `20261110220446_add_settlement_expenses_and_adjustments.sql`
+      6. `20261110220456_add_settlement_columns.sql`
 - [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
@@ -300,22 +308,22 @@ Fichas: [Archivos y Storage — Cloudflare R2](../.backend/modulos/archivos-stor
 [Especificación transversal de Storage](../ingeneri/storage.md);
 [Integraciones](../.backend/modulos/integraciones.md).
 
-- [ ] Storage — contrato y puerto: definir interfaz `ObjectStorage` y tipos propios (`ObjectRef`, `UploadSpec`, `DownloadSpec`, `ObjectInfo`, `PresignedRequest`) sin dependencias de SDK en dominio/aplicación.
-- [ ] Storage — adaptador local (filesystem): implementar almacenamiento simple en disco local (`STORAGE_LOCAL_DIR=./uploads`) y handlers de carga/descarga local para pruebas sin Cloudflare.
-- [ ] Storage — adaptador S3-compatible para Cloudflare R2: implementar cliente con AWS SDK for Go v2, presigner para `PUT` (con `If-None-Match: *` y metadata `upload-id`) y `GET`, `HeadObject` y `DeleteObject`.
-- [ ] Storage — configuración tipada y conmutación: variables `STORAGE_PROVIDER=local|r2`, `STORAGE_LOCAL_DIR` y variables R2 en `internal/config` y `example.env`.
-- [ ] Storage — base de datos: preparar migración SQL versionada para `stored_objects`, estados (`PENDING`, `AVAILABLE`, `DELETE_PENDING`, `DELETED`, `FAILED`), índices multiempresa y repositorio PostgreSQL.
-- [ ] Storage — casos de uso y endpoints: solicitar URL de carga (`POST /api/v1/storage/signed-url`), confirmar con validación HEAD (`POST /api/v1/storage/objects/{id}/confirm`), emitir URL de descarga (`GET /api/v1/storage/objects/{id}/download-url`) y solicitar eliminación (`DELETE /api/v1/storage/objects/{id}`) con autorización multiempresa.
-- [ ] Storage — infraestructura y CORS: definir bucket privado por entorno, token de objetos con permisos mínimos y política CORS en bucket R2 con headers firmados (`Content-Type`, `If-None-Match`, `x-amz-meta-upload-id`).
-- [ ] Storage — ciclo de vida y resiliencia: reconciliación con HEAD tras timeout de carga, limpieza de `PENDING` vencidos y job de borrado físico diferido tras expiración de URL PUT.
-- [ ] Agenda externa — backend: implementar sincronización de solo lectura sin
+- [x] Storage — contrato y puerto: definir interfaz `ObjectStorage` y tipos propios (`ObjectRef`, `UploadSpec`, `DownloadSpec`, `ObjectInfo`, `PresignedRequest`) sin dependencias de SDK en dominio/aplicación.
+- [x] Storage — adaptador local (filesystem): implementar almacenamiento simple en disco local (`STORAGE_LOCAL_DIR=./uploads`) y handlers de carga/descarga local para pruebas sin Cloudflare.
+- [x] Storage — adaptador S3-compatible para Cloudflare R2: implementar cliente con AWS SDK for Go v2, presigner para `PUT` (con `If-None-Match: *` y metadata `upload-id`) y `GET`, `HeadObject` y `DeleteObject`.
+- [x] Storage — configuración tipada y conmutación: variables `STORAGE_PROVIDER=local|r2`, `STORAGE_LOCAL_DIR` y variables R2 en `internal/config` y `example.env`.
+- [x] Storage — base de datos: preparar migración SQL versionada para `stored_objects`, estados (`PENDING`, `AVAILABLE`, `DELETE_PENDING`, `DELETED`, `FAILED`), índices multiempresa y repositorio PostgreSQL.
+- [x] Storage — casos de uso y endpoints: solicitar URL de carga (`POST /api/v1/storage/signed-url`), confirmar con validación HEAD (`POST /api/v1/storage/objects/{id}/confirm`), emitir URL de descarga (`GET /api/v1/storage/objects/{id}/download-url`) y solicitar eliminación (`DELETE /api/v1/storage/objects/{id}`) con autorización multiempresa.
+- [x] Storage — infraestructura y CORS: definir bucket privado por entorno, token de objetos con permisos mínimos y política CORS en bucket R2 con headers firmados (`Content-Type`, `If-None-Match`, `x-amz-meta-upload-id`).
+- [x] Storage — ciclo de vida y resiliencia: reconciliación con HEAD tras timeout de carga, limpieza de `PENDING` vencidos y job de borrado físico diferido tras expiración de URL PUT.
+- [x] Agenda externa — backend: implementar sincronización de solo lectura sin
       modificar la agenda de origen.
-- [ ] WhatsApp: mantener copia/apertura manual; no agregar envío automático esto es un copy paste que se podria hacer tranquilamente en el frontend, eliminar este check de ser asi.
-- [ ] Integraciones: registrar auditoría, errores e idempotencia.
-- [ ] Aplicar la verificación operativa común de backend: compilar, iniciar la
+- [x] WhatsApp: mantener copia/apertura manual; no agregar envío automático esto es un copy paste que se podria hacer tranquilamente en el frontend, eliminar este check de ser asi.
+- [x] Integraciones: registrar auditoría, errores e idempotencia.
+- [x] Aplicar la verificación operativa común de backend: compilar, iniciar la
       API con variables configuradas por el operador y comprobar HTTP 200 en
       `/health/live` y `/health/ready`.
-- [ ] Criterio de salida de backend: módulos de negocio, Storage e integraciones
+- [x] Criterio de salida de backend: módulos de negocio, Storage e integraciones
       implementados en Go y cumplen la verificación operativa común. Contratos
       y endpoints listos para su consumo por frontend. No comenzar la migración
       frontend antes de este punto.

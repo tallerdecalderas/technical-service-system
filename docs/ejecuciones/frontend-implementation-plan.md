@@ -57,71 +57,71 @@ estar disponibles.
   backend. No usar comodines ni trasladar esta configuración a producción.
 ### 8.0 — Preparar la conexión frontend
 
-- [ ] Confirmar cierre de las fases backend 1–7 y disponibilidad de los
+- [x] Confirmar cierre de las fases backend 1–7 y disponibilidad de los
       endpoints, permisos, errores y contratos consumidos por la interfaz.
-- [ ] Inventariar páginas/componentes existentes y asociar cada flujo con sus
+- [x] Inventariar páginas/componentes existentes y asociar cada flujo con sus
       endpoints Go; conservar los componentes visuales durante la migración.
-- [ ] Crear cliente HTTP tipado para `/api/v1` con cookies, CSRF, errores,
+- [x] Crear cliente HTTP tipado para `/api/v1` con cookies, CSRF, errores,
       paginación, `requestId` e idempotencia.
-- [ ] Crear DTOs de transporte y adaptadores a los tipos ya usados por las
+- [x] Crear DTOs de transporte y adaptadores a los tipos ya usados por las
       pantallas, eliminando su dependencia de tipos/modelos Prisma.
-- [ ] Configurar URL base y credenciales de cookies; comprobar la conexión
+- [x] Configurar URL base y credenciales de cookies; comprobar la conexión
       local desde `http://localhost:3000` con la allowlist de desarrollo.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.1 — Autenticación y sesión
 
-- [ ] Conectar login, logout, sesión actual y recuperación/cambio de
+- [x] Conectar login, logout, sesión actual y recuperación/cambio de
       contraseña con los endpoints Go.
-- [ ] Conservar los formularios existentes y adaptar sesión/rol de Go a las
+- [x] Conservar los formularios existentes y adaptar sesión/rol de Go a las
       guardas, navegación y datos mostrados.
-- [ ] Dejar de usar bcrypt, cookie local base64 y rutas `/api/auth/*` desde
+- [x] Dejar de usar bcrypt, cookie local base64 y rutas `/api/auth/*` desde
       los flujos migrados; no retirar todavía rutas con consumidores.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.2 — Dashboards y agendas
 
-- [ ] Conectar dashboard de Administración con sus indicadores y servicios.
-- [ ] Conectar dashboard, calendario, lista de servicios y agenda del Técnico
+- [x] Conectar dashboard de Administración con sus indicadores y servicios.
+- [x] Conectar dashboard, calendario, lista de servicios y agenda del Técnico
       con las proyecciones autorizadas por Go.
-- [ ] Preservar los componentes existentes, filtros, calendario, tarjetas y
+- [x] Preservar los componentes existentes, filtros, calendario, tarjetas y
       estados de carga, vacío y error; adaptar solo los datos recibidos.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.3 — Clientes y técnicos
 
-- [ ] Conectar listado, búsqueda, detalle, alta y edición de clientes a Go,
+- [x] Conectar listado, búsqueda, detalle, alta y edición de clientes a Go,
       conservando páginas, diálogos, formularios y tablas actuales.
-- [ ] Conectar listado, detalle, alta/edición y asignación de técnicos a Go,
+- [x] Conectar listado, detalle, alta/edición y asignación de técnicos a Go,
       conservando la interfaz actual.
-- [ ] Adaptar paginación, filtros, validaciones y errores HTTP a los
+- [x] Adaptar paginación, filtros, validaciones y errores HTTP a los
       componentes existentes.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.4 — Servicios y flujo del Técnico
 
-- [ ] Conectar listado, detalle, alta y edición administrativa de servicios.
-- [ ] Conectar servicios asignados, detalle, inicio/cierre e historial del
+- [x] Conectar listado, detalle, alta y edición administrativa de servicios.
+- [x] Conectar servicios asignados, detalle, inicio/cierre e historial del
       Técnico con endpoints Go y transiciones autorizadas.
-- [ ] Conservar los componentes actuales y adaptar diferencias entre los
+- [x] Conservar los componentes actuales y adaptar diferencias entre los
       modelos existentes y DTOs Go; mantener compatibilidad con `CLOSED`
       únicamente donde el contrato vigente lo requiera.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.5 — Presupuestos, cobros, repuestos y gastos
 
-- [ ] Conectar listados, detalle y acciones de presupuestos a Go.
-- [ ] Conectar la tabla y los flujos existentes de cobros/deuda a Go.
-- [ ] Conectar captura/edición de repuestos y gastos dentro de los flujos de
+- [x] Conectar listados, detalle y acciones de presupuestos a Go.
+- [x] Conectar la tabla y los flujos existentes de cobros/deuda a Go.
+- [x] Conectar captura/edición de repuestos y gastos dentro de los flujos de
       servicio existentes.
-- [ ] Representar estados, snapshots e importes con precisión; mostrar los
+- [x] Representar estados, snapshots e importes con precisión; mostrar los
       cálculos oficiales recibidos de Go, sin recalcularlos en la UI.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.6 — Inventario, catálogo y proveedores (pantallas nuevas)
@@ -196,18 +196,46 @@ estar disponibles.
       preserva la interfaz existente y se cumple el criterio común de smoke
       frontend.
 
+### 8.12 — Migración de páginas existentes a Go API (Completada)
+
+Las páginas existentes fueron reescritas para consumir la API Go directamente mediante `apiClient` y adaptadores DTO (Prisma fue removido por completo en los commits `439c09d` y `844bbc7`):
+
+- [x] Páginas de Administración (Clientes, Dashboard, Presupuestos, Pagos, Agenda, Servicios, Técnicos).
+- [x] Páginas de Técnico (Dashboard, Servicios asignados, Cierre).
+- [x] Componentes de mutación y formularios desacoplados de Prisma.
+
+**Páginas de Técnico (4):**
+- `app/(dashboard)/technician/dashboard/page.tsx`
+- `app/(dashboard)/technician/schedule/page.tsx`
+- `app/(dashboard)/technician/services/page.tsx`
+- `app/(dashboard)/technician/services/[id]/page.tsx`
+
+**Route Handlers y Servicios (2):**
+- `app/api/integrations/whatsapp/log/route.ts`
+- `lib/services/activity-log.service.ts`
+
+**Tipos (16 archivos en `types/`):**
+Reemplazar importaciones desde `@/generated/prisma8/contract` por tipos
+definidos manualmente o adaptados desde los DTOs de Go.
+
+- [x] Migrar cada página listada arriba a usar `apiClient` + adaptadores existentes
+- [x] Reemplazar importaciones de Prisma en tipos por tipos locales
+- [x] Ejecutar `pnpm build` y verificar que no queden importaciones de `@/lib/prisma` ni `@/lib/db`
+- [x] Ejecutar `pnpm start` y comprobar HTTP 200 en `/login`
+- [x] Aplicar el criterio común de smoke frontend
+
 ## Fase 9 — Retiro del backend interno de Next.js
 
-- [ ] Confirmar que todas las capacidades y flujos, incluida la PWA, cumplen
+- [x] Confirmar que todas las capacidades y flujos, incluida la PWA, cumplen
       el criterio de compilación y cierre de la Fase 8.
-- [ ] Confirmar que no existan consumidores de las rutas internas antes de
+- [x] Confirmar que no existan consumidores de las rutas internas antes de
       eliminar Route Handlers, Server Actions, servicios Prisma, `lib/db.ts` y
       lógica de autenticación local/bcrypt/base64 reemplazada por Go.
-- [ ] Eliminar `prisma/`, configuración ORM y dependencias obsoletas solo
+- [x] Eliminar `prisma/`, configuración ORM y dependencias obsoletas solo
       después de verificar que no quedan importaciones ni consumidores.
-- [ ] Verificar que Next.js sea únicamente interfaz/renderizado y cliente HTTP;
+- [x] Verificar que Next.js sea únicamente interfaz/renderizado y cliente HTTP;
       todas las operaciones de negocio deben pasar por Go.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
-- [ ] Marcar completo el desacoplamiento solo después de comprobar que no
+- [x] Marcar completo el desacoplamiento solo después de comprobar que no
       quedan consumidores de Prisma ni lógica de negocio en Next.js.

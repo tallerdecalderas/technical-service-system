@@ -101,7 +101,7 @@ la transición:
 | `settlement_expenses` | `settlementExpense` (migración pendiente del operador) | Snapshot de gastos por servicio |
 | `settlement_adjustments` | `settlementAdjustment` (migración pendiente del operador) | Seguros, otros ajustes, descuentos y adelantos |
 | `activity_logs` | `activityLog` | Auditoría de acciones sobre servicios |
-| `stored_objects` | Cloudflare R2; migración pendiente del operador | Metadatos de archivos: propiedad, estado, key R2, entidad relacionada y ciclo de vida. Ver [archivos-storage.md](modulos/archivos-storage.md) |
+| `stored_objects` | `storedObject` (migración `20261113000000_add_stored_objects.sql` creada) | Metadatos de archivos: propiedad, estado, key R2, entidad relacionada y ciclo de vida. Ver [archivos-storage.md](modulos/archivos-storage.md) |
 
 Los nombres SQL son una decisión del backend; los nombres JSON de la API no
 tienen que coincidir con ellos.

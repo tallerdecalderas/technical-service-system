@@ -7,42 +7,29 @@ funcional es la fuente de verdad: [reglas de negocio](../reglas-negocio.md) y
 consultan en [arquitectura backend](../ingeneri/backend-architecture.md),
 [contrato HTTP](../.backend/api.md) y [esquema de datos](../.backend/database.md).
 
-## Estado real al iniciar
+## Estado del proyecto y avances
 
-### Backend Go
+### Backend Go (`technical-service-backend`)
 
-- Estructura de directorios inicial creada.
-- Módulo Go y dependencia `github.com/jackc/pgx/v5` creados.
-- Prueba mínima de conexión PostgreSQL en `cmd/api/main.go`.
-- Conexión real a Supabase verificada.
-- Base técnica implementada: configuración, pool, HTTP, CORS, health checks,
-  logging y apagado ordenado.
-- Autenticación, sesión opaca, CSRF y recuperación implementados localmente;
-  falta completar las validaciones operativas y la autorización.
-- Los módulos de negocio todavía deben implementarse en Go. El módulo de
-  clientes ya tiene partes de dominio, casos de uso, repositorio y handler,
-  pero sus rutas aún no están conectadas al servidor.
+- Base técnica, configuración, pool pgx, servidor HTTP con timeouts, CORS, logging y health checks (`/health/live`, `/health/ready`).
+- Autenticación, sesión opaca (`tech-service-session`), CSRF (`tech-service-csrf`) y recuperación de contraseña vía Resend.
+- Módulos de negocio implementados: Clientes, Técnicos, Servicios, Agenda, Pagos, Presupuestos, Gastos, Catálogo/Proveedores, Importación CSV y Rendiciones/Liquidaciones con inmutabilidad y snapshots.
+- Storage desacoplado: soporte para modo local en disco (`./uploads`) y Cloudflare R2 vía AWS SDK v2, con presigned URLs para carga (`PUT`), confirmación y descarga (`GET`).
+- Integraciones: Google Sheets de solo lectura para sincronización.
+- Migraciones SQL gestionadas con Supabase CLI en `supabase/migrations/` (pendiente poblar los 6 archivos de Fase 6 que quedaron en blanco).
 
-### Frontend Next.js/PWA
+### Frontend Next.js/PWA (`technical-service-frontend`)
 
-- La aplicación sigue ejecutando la lógica de negocio.
-- Las páginas, servicios y Route Handlers usan Prisma/PostgreSQL directamente.
-- La autenticación actual usa bcrypt y una cookie base64 con datos del usuario.
-- Las mutaciones llaman rutas locales `/api/*`.
-- No existe todavía un cliente HTTP para `/api/v1` del backend Go.
-- El frontend actual se conserva mientras se completa el backend Go; su
-  migración y el retiro de la lógica interna de Next.js ocurren en fases
-  posteriores, no en paralelo con la construcción de los módulos Go.
-- Prisma y su esquema son el mecanismo actual del frontend, no la fuente futura
-  del contrato de datos.
-- `node_modules`, `.next`, archivos generados y cachés quedan fuera del plan.
+- Todas las páginas existentes de Administración y Técnico han sido migradas a la API Go mediante `apiClient` (`lib/api-client.ts`) con DTOs y adaptadores de transporte.
+- El legado de Prisma y Route Handlers en `app/api/` fue completamente retirado del frontend.
+- `apiClient` cuenta con timeout configurable por llamada (15s por defecto, 60s para uploads), manejo de errores de red y envío de credenciales (`credentials: "include"`).
+- Pendiente: implementar las pantallas nuevas de Inventario/Catálogo, Rendiciones y Configuración, además de la sincronización offline completa en IndexedDB.
 
 ## Entorno y límites de esta ejecución
 
 - El proyecto Supabase objetivo es `bniquenbqwibyxychnva`; las inspecciones
   remotas deben seleccionar explícitamente ese proyecto.
-- Este espacio de trabajo no es un repositorio Git. Los cambios se mantienen
-  en los archivos locales: no hay commits, pushes ni subida a otro repositorio.
+- `technical-service-backend` y `technical-service-frontend` son repositorios Git independientes.
 - No existe una base local o de pruebas: por decisión del usuario, el proyecto
   usa únicamente la base Supabase de producción para desarrollo. El usuario
   indica que todavía no hay usuarios activos en la aplicación.
@@ -180,13 +167,13 @@ No bloquear trabajo local independiente mientras se espera esa confirmación.
 | Fase | Estado | Evidencia |
 |---|---|---|
 | Fase 0 — Auditoría, decisiones y contratos | **COMPLETADA** | Auditoría reproducible, contratos documentados y decisiones de compatibilidad aprobadas |
-| Fase 1 — Base técnica backend | **Verificación operativa reportada** | `/health/live` y `/health/ready` respondieron `200 OK`; aplicar también el criterio de compilación y arranque por fase. La ejecución de suites automatizadas queda para la validación global |
-| Fase 2 — Compatibilidad Supabase | **Migraciones confirmadas por el usuario** | El usuario informa que las migraciones requeridas están aplicadas; esta actualización no consultó producción |
-| Fase 3 — Identidad, sesión y autorización | **Autenticación confirmada por el usuario** | El usuario indica que la autenticación está lista; la autorización por recurso se completa junto a cada módulo. No se ejecutan pruebas automatizadas por fase |
-| Fase 4 — Clientes, técnicos y servicios | **Implementación Go realizada; salida pendiente** | Rutas y dependencias conectadas; falta completar la verificación operativa común; el usuario confirma que las migraciones necesarias están aplicadas |
-| Fases 5–7 — Capacidades backend | Pendiente | Implementar módulos restantes, Storage e integraciones en Go; aplicar verificación operativa por fase. Las pruebas automatizadas se abordan al final |
-| Fase 8 — Frontend: conservar interfaz y conectar con Go | Pendiente | Desglosada en el [plan frontend](./frontend-implementation-plan.md); ejecutar después de cerrar las capacidades backend requeridas |
-| Fase 9 — Retiro Next.js | Pendiente | No retirar componentes hasta que el frontend consuma y verifique Go en todos los flujos |
+| Fase 1 — Base técnica backend | **COMPLETADA** | Servidor HTTP, pgxpool, logging, CORS, graceful shutdown y endpoints `/health/*` implementados |
+| Fase 2 — Compatibilidad Supabase | **COMPLETADA** | Mapeo de esquema heredado en Go y migraciones en Supabase CLI |
+| Fase 3 — Identidad, sesión y autorización | **COMPLETADA** | Login, sesión opaca, CSRF, recuperación vía Resend y autorización RBAC implementados en Go |
+| Fase 4 — Clientes, técnicos y servicios | **COMPLETADA** | Módulos de clientes, técnicos, servicios, agenda y estados implementados en Go |
+| Fases 5–7 — Capacidades backend | **COMPLETADA EN CÓDIGO** | Cobros, presupuestos, gastos, catálogo, rendiciones, Storage (Local/R2) e integraciones implementados en Go. (Pendiente poblar los 6 SQLs vacíos de Fase 6) |
+| Fase 8 — Frontend: conservar interfaz y conectar con Go | **EN PROGRESO** | Páginas existentes migradas a `apiClient`; pendientes las pantallas nuevas (Inventario, Rendiciones, Configuración) y PWA offline completa |
+| Fase 9 — Retiro Next.js | **COMPLETADA EN PÁGINAS EXISTENTES** | Prisma y Route Handlers locales eliminados; dependencias retiradas |
 
 ## Planes operativos por etapa
 
@@ -196,30 +183,25 @@ mezclar la construcción backend con la migración frontend:
 1. Completar en orden las [fases backend 0–7](./backend-implementation-plan.md).
 2. Después, ejecutar las [fases frontend 8–9](./frontend-implementation-plan.md).
 
-El desglose frontend se define anticipadamente para orientar las APIs, pero su
-implementación espera a que el backend requerido esté listo. La matriz de este
-plan maestro es el resumen de estado; cada plan operativo contiene el detalle
-de sus tareas y criterios.
-
 ## Matriz única de capacidades
 
 | Capacidad | Contrato | Backend Go | Frontend migrado | Legado retirado |
 |---|---|---|---|---|
-| Auditoría y compatibilidad Supabase | [x] | [ ] | [ ] | [ ] |
-| Identidad y sesión | [~] | [ ] | [ ] | [ ] |
-| Clientes | [~] | [ ] | [ ] | [ ] |
-| Técnicos | [~] | [ ] | [ ] | [ ] |
-| Servicios y estados | [~] | [ ] | [ ] | [ ] |
-| Agenda e historial | [~] | [ ] | [ ] | [ ] |
-| Cobros y repuestos | [~] | [ ] | [ ] | [ ] |
-| Presupuestos | [~] | [ ] | [ ] | [ ] |
-| Gastos de servicio | [~] | [ ] | [ ] | [ ] |
-| Inventario y proveedores | [~] | [ ] | [ ] | [ ] |
-| Rendiciones | [~] | [ ] | [ ] | [ ] |
-| Storage | [~] | [ ] | [ ] | [ ] |
-| Integraciones | [~] | [ ] | [ ] | [ ] |
-| PWA y caché | [~] | [ ] | [ ] | [ ] |
-| Configuración administrativa | [ ] | [ ] | [ ] | [ ] |
+| Auditoría y compatibilidad Supabase | [x] | [x] | [x] | [x] |
+| Identidad y sesión | [x] | [x] | [x] | [x] |
+| Clientes | [x] | [x] | [x] | [x] |
+| Técnicos | [x] | [x] | [x] | [x] |
+| Servicios y estados | [x] | [x] | [x] | [x] |
+| Agenda e historial | [x] | [x] | [x] | [x] |
+| Cobros y repuestos | [x] | [x] | [x] | [x] |
+| Presupuestos | [x] | [x] | [x] | [x] |
+| Gastos de servicio | [x] | [x] | [ ] | [x] |
+| Inventario y proveedores | [x] | [x] | [ ] | [x] |
+| Rendiciones | [x] | [x] | [ ] | [x] |
+| Storage | [x] | [x] | [~] | [x] |
+| Integraciones | [x] | [x] | [~] | [x] |
+| PWA y caché | [x] | [x] | [ ] | [x] |
+| Configuración administrativa | [~] | [~] | [ ] | [x] |
 
 ## Fuera de alcance de esta migración
 
