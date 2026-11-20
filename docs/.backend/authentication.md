@@ -21,6 +21,7 @@ Configurar en el entorno privado de `technical-service-backend`:
 | `DATABASE_RUNTIME_URL` | Sí | Conexión runtime de Go; no se usa `DATABASE_URL` como alternativa |
 | `SUPABASE_URL` | Sí | Origen del proyecto Supabase |
 | `SUPABASE_AUTH_API_KEY` | Sí | Publishable key (o anon key heredada) para las llamadas Auth; solo server-side en esta integración |
+| `SUPABASE_AUTH_ADMIN_KEY` | Solo para `cmd/seed` | Secret key de Supabase para crear y buscar identidades; nunca se usa en la API ni en el frontend |
 | `SUPABASE_JWT_SECRET` | Sí | Secreto JWT HS256 del proyecto, nunca una API key |
 | `SUPABASE_PASSWORD_RESET_REDIRECT_URL` | En staging/producción | URL HTTPS del frontend, normalmente `/reset-password`, habilitada en Redirect URLs de Supabase Auth |
 | `SESSION_TTL` | No | Duración de sesión Go; predeterminado `168h` |
@@ -31,8 +32,8 @@ Configurar en el entorno privado de `technical-service-backend`:
 El frontend necesita `NEXT_PUBLIC_API_URL` apuntando al origen de la API Go.
 Si se cambian `SESSION_COOKIE_NAME` o `CSRF_COOKIE_NAME`, configurar el mismo
 nombre en el entorno del servidor Next.js (`SESSION_COOKIE_NAME` y
-`NEXT_PUBLIC_CSRF_COOKIE_NAME`). No agregar `SUPABASE_JWT_SECRET`, service-role
-keys ni contraseñas a variables `NEXT_PUBLIC_*`, `.env` versionados o al chat.
+`NEXT_PUBLIC_CSRF_COOKIE_NAME`). No agregar `SUPABASE_AUTH_ADMIN_KEY`, `SUPABASE_JWT_SECRET`, service-role keys
+ni contraseñas a variables `NEXT_PUBLIC_*`, `.env` versionados o al chat.
 
 En desarrollo local se permite HTTP. En staging y producción, Supabase, el
 origen de recuperación, CORS y CSRF deben usar HTTPS. El frontend debe estar
@@ -63,21 +64,43 @@ Los eventos de login, logout y recuperación se registran estructuradamente sin
 correo, contraseña ni tokens; esto complementa, pero no sustituye, la auditoría
 durable de acciones de negocio.
 
-## Aprovisionamiento inicial
+## Aprovisionamiento de usuarios
 
-No hay auto-registro ni enlace automático por correo. Antes del primer login,
-una persona operadora debe:
+No hay auto-registro ni enlace automático por correo. Para crear usuarios sin
+agregarlos manualmente desde el Dashboard, ejecutar `cmd/seed` desde
+`technical-service-backend`, con `SUPABASE_AUTH_ADMIN_KEY` configurada como
+clave secreta del mismo proyecto que `SUPABASE_URL`:
 
-1. Crear la identidad en Supabase Auth y anotar su UUID de Auth.
-2. Crear el usuario interno en `public."user"` con rol `ADMIN` o `TECHNICIAN`.
-   La columna heredada `passwordHash` debe recibir un valor no vacío, pero ya
-   no participa en el login Supabase.
-3. Crear o seleccionar una empresa activa y registrar la fila de membresía en
-   `public.user_company_memberships`.
-4. Insertar en `public.user_identities` el proveedor `supabase`, el UUID de
-   Auth como `provider_subject` y el ID interno como `user_id`.
-5. Verificar los IDs, el estado activo, el rol y la membresía antes de probar
-   el acceso.
+```sh
+go run ./cmd/seed \
+  -skip-primary \
+  -technician "Técnico,tecnico@example.com,una-contraseña-segura" \
+  -company "Taller de calderas" \
+  -verify
+```
+
+La clave administrativa se envía solo en el header `apikey` cuando usa el
+formato nuevo `sb_secret_...`; no se agrega como `Authorization: Bearer`,
+porque las claves nuevas no son JWT. Para una clave legacy `service_role`, el
+seed mantiene ambos headers. La clave normal de login sigue siendo
+`SUPABASE_AUTH_API_KEY` (publishable o anon heredada).
+
+Se pueden pasar varios técnicos repitiendo `-technician
+"nombre,email,contraseña"`. `-skip-primary` evita crear o actualizar también
+el usuario principal, por lo que se puede usar al agregar técnicos a una
+empresa existente. Para crear el usuario principal como `ADMIN`, pasar
+`-name`, `-email` y `-pass`, sin `-skip-primary`.
+
+Si el correo ya existe en Supabase Auth, el seed reutiliza su UUID y
+crea/actualiza el vínculo interno; no cambia la contraseña existente.
+`-verify` comprueba la contraseña indicada directamente contra Supabase Auth.
+La columna heredada `passwordHash` recibe un hash no vacío, pero no participa
+en el login. La contraseña no se imprime al terminar.
+
+El seed también puede leer la clave de `SUPABASE_SECRET_KEY`, del valor directo
+o del objeto JSON `default` en `SUPABASE_SECRET_KEYS`, para compatibilidad con
+configuraciones locales existentes. Se recomienda configurar
+`SUPABASE_AUTH_ADMIN_KEY` explícitamente para el comando.
 
 La estructura inicial de los vínculos se encuentra en
 `supabase/migrations/20261105161000_service_compatibility_foundation.sql`; las

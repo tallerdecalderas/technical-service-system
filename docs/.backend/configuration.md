@@ -17,6 +17,8 @@ DATABASE_CONNECT_TIMEOUT=5s
 DATABASE_QUERY_TIMEOUT=10s
 SUPABASE_URL=https://project-ref.supabase.co
 SUPABASE_AUTH_API_KEY=sb_publishable_replace-with-project-key
+# Solo cmd/seed; clave secreta, nunca pública.
+SUPABASE_AUTH_ADMIN_KEY=
 SUPABASE_JWT_SECRET=replace-with-server-only-jwt-secret-at-least-32-chars
 SUPABASE_PASSWORD_RESET_REDIRECT_URL=http://localhost:3000/reset-password
 
@@ -52,9 +54,9 @@ desde cada réplica. Consulta
 [Conexión y migraciones SQL](../ingeneri/database-connection.md) para TLS,
 límites del pool, transacciones y el procedimiento sin ORM.
 
-La aplicación Go no carga automáticamente `.env`; el entorno debe exportarse
-antes de iniciar el proceso. En producción, utilizar el gestor de secretos de
-la plataforma.
+`config.Load()` carga `.env` desde el directorio de trabajo si existe, sin
+reemplazar variables ya definidas en el entorno. En producción, utilizar el
+gestor de secretos de la plataforma.
 
 `CORS_ALLOWED_ORIGINS` es una lista separada por comas de orígenes exactos,
 sin comodines ni rutas. En `staging` y `production` deben usar HTTPS.
@@ -69,6 +71,12 @@ localmente tokens HS256 con `SUPABASE_JWT_SECRET` y rechaza firma, `iss`,
 `SUPABASE_URL` (`/auth/v1`) y la audiencia aceptada es `authenticated`.
 La API key para Auth puede ser publishable; no se necesita una clave
 `service_role` para el flujo de login.
+El comando `cmd/seed` sí requiere una clave secreta para crear y buscar
+identidades mediante la Admin API. Configurarla como
+`SUPABASE_AUTH_ADMIN_KEY`; esa clave no es requerida por el servidor HTTP y
+nunca debe usarse en el frontend. El seed conserva compatibilidad con
+`SUPABASE_SECRET_KEY`, `SUPABASE_SECRET_KEYS` y
+`SUPABASE_SERVICE_ROLE_KEY` si ya están configuradas.
 
 El `sub` del JWT se vincula a `user_identities.provider_subject`; la
 autorización usa el `users.id` interno, su estado y sus roles. La sesión de
