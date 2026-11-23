@@ -41,17 +41,15 @@ Dashboard
 
 Agenda
 
-Órdenes de Trabajo
-
 Clientes
 
 Técnicos
 
 Rendiciones
 
-Presupuestos
+Presupuesto
 
-Inventario
+Inventario/catalogo
 
 Integraciones
 

@@ -132,6 +132,7 @@ encabezado es legible por el navegador.
 | Módulo | Operaciones |
 |---|---|
 | Auth | `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/session`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset` |
+| Empresas | `GET /api/v1/companies` — devuelve ID y nombre de las empresas activas autorizadas para la sesión |
 | Clientes | `GET/POST /clients`, `GET/PATCH /clients/{id}` |
 | Técnicos | `GET/POST /technicians`, `GET/PATCH /technicians/{id}` |
 | Servicios | `GET/POST /services`, `GET/PATCH /services/{id}`, `POST /services/{id}/status`, `POST /services/{id}/finish` |
@@ -142,7 +143,7 @@ encabezado es legible por el navegador.
 | Gastos de servicio | `GET/POST /services/{serviceId}/expenses`, `PATCH/DELETE /services/{serviceId}/expenses/{expenseId}` |
 | Presupuestos | `GET/POST /estimates`, `GET /estimates/{id}`, `POST /estimates/{id}/finalize` |
 | Rendiciones | `GET/POST /settlements`, `GET/PATCH /settlements/{id}`, `POST /settlements/{id}/liquidate` |
-| Catálogo | `GET /catalog/prices`, `GET/POST /catalog/providers`, `PATCH /catalog/providers/{id}`, `GET/POST /catalog/offers`, `PATCH /catalog/offers/{id}`, `GET /catalog/exchange-rates/latest`, `POST /catalog/exchange-rates`, `PATCH /catalog/items/{id}`, `POST /catalog/import` |
+| Catálogo | `GET /catalog/prices` (`includeInactive=true` solo ADMIN), `GET/POST /catalog/providers`, `PATCH /catalog/providers/{id}`, `GET/POST /catalog/offers`, `PATCH /catalog/offers/{id}`, `GET /catalog/exchange-rates/latest`, `POST /catalog/exchange-rates`, `PATCH /catalog/items/{id}`, `POST /catalog/import`, `POST /integrations/google-sheets/catalog-import` |
 | Storage | `POST /storage/signed-url`, `POST /storage/objects/{id}/confirm`, `GET /storage/objects/{id}/download-url`, `DELETE /storage/objects/{id}` |
 | Integraciones | `POST /integrations/google-sheets/schedule-sync`, `GET /integrations/status`, `POST /integrations/whatsapp/log` |
 

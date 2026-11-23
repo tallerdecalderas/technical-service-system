@@ -122,6 +122,7 @@ Las rutas siguientes describen el objetivo inicial. Solo se habilita una operaci
 | Presupuestos | `GET /api/v1/estimates`; `POST /api/v1/services/{id}/estimate`; `PATCH /api/v1/estimates/{id}` para finalizar | Técnico crea en su servicio; solo Administración finaliza |
 | Rendiciones | `GET/POST /api/v1/settlements`; `GET /api/v1/settlements/{id}`; `POST /api/v1/settlements/{id}/liquidate` | Técnico consulta las propias; Administración genera/revisa/liquida |
 | Catálogo de precios | `GET /api/v1/catalog/prices` | Técnico consulta precios de técnico; Administración accede a vista autorizada. La respuesta incluye `version` y `updatedAt` para sincronizar la caché |
+| Empresas autorizadas | `GET /api/v1/companies` | Devuelve únicamente ID y nombre de las empresas activas asociadas a la sesión |
 | Importación de catálogo | `POST /api/v1/integrations/google-sheets/catalog-import` | Solo Administración; publicar únicamente si la importación completa y valida |
 | Sincronización de agenda | `POST /api/v1/integrations/google-sheets/schedule-sync`; `GET /api/v1/integrations/status` | Solo Administración |
 | Archivos | `POST /api/v1/storage/signed-url`; `POST /api/v1/storage/objects/{id}/confirm`; `GET /api/v1/storage/objects/{id}/download-url` | Go valida usuario, entidad, acción, tipo y tamaño; confirma la carga antes de guardar la asociación y emite URLs de corta duración |

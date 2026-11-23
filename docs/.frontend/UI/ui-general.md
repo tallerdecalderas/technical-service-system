@@ -23,7 +23,7 @@ Toda la interfaz debe respetar:
 
 La interfaz de Técnicos será Mobile First.
 
-La interfaz de Administración será Desktop First.
+La interfaz de Administración será Desktop First y Mobile Friendly.
 
 ---
 
@@ -32,7 +32,6 @@ La interfaz de Administración será Desktop First.
 Toda la aplicación deberá funcionar correctamente en:
 
 - Desktop
-- Tablet
 - Mobile
 
 La adaptación deberá priorizar el contexto de uso de cada rol.
@@ -187,6 +186,5 @@ La interfaz deberá poder incorporar posteriormente:
 - Notificaciones Push
 - Modo Oscuro
 - Inteligencia Artificial
-- nuevas funcionalidades PWA
 
 Las nuevas funcionalidades deberán integrarse respetando los patrones existentes.

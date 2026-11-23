@@ -2,11 +2,12 @@
 
 **Fase:** 6.  
 **Estado:** catálogo de lectura, administración de proveedores/ofertas,
-cotización, precios e importación por CSV implementados en Go. La carga de
-precios de catálogo se hace por archivo CSV aportado por Administración; la
-sincronización de servicios con Google Sheets es un flujo separado y no forma
-parte del catálogo de precios. Las tablas y columnas nuevas requieren una
-migración aditiva que aplica el operador; la API no ejecuta DDL.
+cotización, precios e importación implementados en Go. Se admite importar un
+archivo CSV y también iniciar la lectura de la hoja de catálogo configurada
+mediante una ruta separada de Google Sheets; ambos flujos pasan por Go y
+publican mediante las mismas validaciones. La sincronización de agenda es otra
+operación independiente. Las tablas y columnas nuevas requieren una migración
+aditiva que aplica el operador; la API no ejecuta DDL.
 
 ## Catálogo
 
@@ -57,7 +58,8 @@ respuesta de Administración incluye costos, margen y ganancia.
 
 | Método | Endpoint | Uso |
 |---|---|---|
-| GET | `/api/v1/catalog/prices` | Lista paginada con proyección según rol |
+| GET | `/api/v1/catalog/prices` | Lista paginada con proyección según rol; `includeInactive=true` solo para ADMIN |
+| GET | `/api/v1/companies` | Empresas activas autorizadas para la sesión (ID y nombre) |
 | GET/POST | `/api/v1/catalog/providers` | ADMIN lista/crea proveedores de sus empresas |
 | PATCH | `/api/v1/catalog/providers/{id}` | ADMIN renombra o activa/desactiva |
 | GET/POST | `/api/v1/catalog/offers` | ADMIN lista/crea ofertas por artículo |
@@ -66,9 +68,13 @@ respuesta de Administración incluye costos, margen y ganancia.
 | POST | `/api/v1/catalog/exchange-rates` | ADMIN carga/actualiza la cotización de una fecha |
 | PATCH | `/api/v1/catalog/items/{id}` | ADMIN corrige margen, precio técnico o estado |
 | POST | `/api/v1/catalog/import` | ADMIN importa/publica catálogo mediante archivo CSV (`multipart/form-data`) |
+| POST | `/api/v1/integrations/google-sheets/catalog-import` | ADMIN importa/publica catálogo desde la hoja configurada (`{ companyId }`) |
 
 Las mutaciones requieren `Idempotency-Key`, sesión, CSRF y `Origin` confiable.
 Los filtros no documentados se rechazan. `companyId` debe pertenecer al actor.
+El catálogo lista artículos activos por defecto; ADMIN puede incluir los
+inactivos con `includeInactive=true` para volver a habilitarlos. TECHNICIAN no
+puede solicitar ese filtro y recibe solo artículos activos.
 
 ## Importación de lista
 
@@ -83,10 +89,10 @@ El endpoint `POST /api/v1/catalog/import` recibe `multipart/form-data` con el
 parámetro `companyId` y el archivo `file` (.csv). El backend soporta delimitadores
 por coma (`,`) o punto y coma (`;`), y codificación UTF-8 (con o sin BOM).
 
-La integración con Google Sheets es exclusiva de la sincronización de agenda y
-servicios (Fase 7); no es el origen del catálogo de precios. Si en el futuro se
-habilitara una importación alternativa desde una hoja externa, constituiría un
-adaptador secundario y no el mecanismo principal del sistema.
+La importación desde Google Sheets usa la configuración y credenciales del
+backend. El navegador no se conecta a Sheets. La ruta de catálogo no equivale
+a la sincronización de agenda: son operaciones independientes, con
+autorización, contrato y datos de destino propios.
 
 ### Columnas del CSV
 

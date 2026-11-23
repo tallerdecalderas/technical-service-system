@@ -4,12 +4,14 @@
 
 Inventario administra el catálogo de repuestos y listas de precios que se utilizan en los servicios y rendiciones. Administración puede revisar la información importada y mantener las listas aplicables; los técnicos consultan únicamente la vista de precios autorizada para ellos.
 
-La importación desde Google Sheets es una función administrativa controlada por la API Go. Supabase PostgreSQL conserva el catálogo oficial y la PWA del técnico puede consultar una copia local de la última versión publicada.
+La importación desde Google Sheets es una función administrativa controlada por la API Go. Supabase PostgreSQL conserva el catálogo oficial y la PWA del técnico puede consultar una copia local de la última versión publicada. La pantalla inicia el flujo existente `POST /api/v1/integrations/google-sheets/catalog-import` con `{ companyId }`; no sube archivos ni conecta el navegador directamente a Sheets.
+
+La selección de empresa consulta `GET /api/v1/companies`. Go deriva las empresas del usuario desde la sesión y solo devuelve el ID y nombre de las empresas activas autorizadas.
 
 ## Flujo de datos
 
 ```text
-Google Sheets (archivo CSV/lista preparada)
+Google Sheets configurada
                ↓
 Administración inicia importación en TechService
                ↓
@@ -28,7 +30,7 @@ Google Sheets no tiene acceso directo a la base de datos. Una importación aprob
 
 ## Importación y publicación
 
-Administración inicia cada importación de forma explícita. Go debe comprobar que la hoja puede leerse y que los datos cumplen el mapeo acordado. La estructura de columnas, claves únicas, política para filas duplicadas y validaciones de precios deben definirse antes de implementar el parser.
+Administración inicia cada importación de forma explícita. Go comprueba que la hoja configurada puede leerse y que los datos cumplen el mapeo y validaciones del importador. La PWA solo envía `companyId`; las credenciales y la lectura de Sheets permanecen en el backend.
 
 - Si todas las validaciones pasan, se publica una nueva versión de catálogo.
 - La publicación es atómica; el técnico y la administración nunca deben leer una importación parcial.
@@ -109,6 +111,17 @@ La PWA no debe leer Sheets directamente ni tratar la caché local como fuente of
 - La caché debe contener solo los campos que el técnico tiene permiso de ver y debe estar aislada por usuario/sesión.
 - Errores de proveedor o de datos importados se registran en el backend sin incluir credenciales.
 
-## Estado
+## Contrato de esta implementación
 
-La importación Google Sheets → PostgreSQL → caché offline está especificada como flujo objetivo, pero aún no se encuentra implementada en la aplicación.
+- Administración consulta precios, costos internos, proveedores, ofertas y
+  cotización mediante la API Go; las actualizaciones usan `Idempotency-Key`.
+- La importación se considera exitosa únicamente cuando Go responde con estado
+  `PUBLISHED`. Los errores de validación y de integración se muestran sin
+  presentar una publicación falsa.
+- El Técnico consulta por empresa, código o descripción. La interfaz solo
+  proyecta código, nombre, unidad y `techPrice`; Go sigue siendo responsable
+  de filtrar los campos de su respuesta.
+- La vista muestra `version` y `updatedAt` recibidos del endpoint. Esta fase
+  no implementa persistencia offline con IndexedDB.
+- La pantalla no administra existencias, elimina ítems ni crea catálogo
+  manualmente; se ciñe a operaciones disponibles en el contrato Go.

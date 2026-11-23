@@ -126,14 +126,14 @@ estar disponibles.
 
 ### 8.6 — Inventario, catálogo y proveedores (pantallas nuevas)
 
-- [ ] Crear la pantalla administrativa de Inventario/catálogo siguiendo
+- [x] Crear la pantalla administrativa de Inventario/catálogo siguiendo
       `UI/ui-administracion.md`, `modulos/Inventario.md` y los componentes
       visuales existentes.
-- [ ] Crear la vista móvil del Técnico para consultar/buscar su lista de
+- [x] Crear la vista móvil del Técnico para consultar/buscar su lista de
       precios autorizada, mostrando versión y actualización.
-- [ ] Conectar catálogo, proveedores/precios e importación con endpoints Go.
+- [x] Conectar catálogo, proveedores/precios e importación con endpoints Go.
       No implementar stock físico ni acceso directo a Google Sheets.
-- [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
+- [x] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
 ### 8.7 — Rendiciones (pantallas nuevas)
