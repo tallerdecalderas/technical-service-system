@@ -133,6 +133,9 @@ encabezado es legible por el navegador.
 |---|---|
 | Auth | `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/session`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset` |
 | Empresas | `GET /api/v1/companies` — devuelve ID y nombre de las empresas activas autorizadas para la sesión |
+| | `POST /api/v1/companies` — crea una empresa (solo ADMIN) |
+| | `PATCH /api/v1/companies/{id}` — edita una empresa (solo ADMIN) |
+| | `DELETE /api/v1/companies/{id}` — desactiva una empresa (solo ADMIN) |
 | Clientes | `GET/POST /clients`, `GET/PATCH /clients/{id}` |
 | Técnicos | `GET/POST /technicians`, `GET/PATCH /technicians/{id}` |
 | Servicios | `GET/POST /services`, `GET/PATCH /services/{id}`, `POST /services/{id}/status`, `POST /services/{id}/finish` |
@@ -264,6 +267,84 @@ Response (202 Accepted):
   exponen `PENDING`/`LIQUIDATED` (la base `PAID` se proyecta como
   `LIQUIDATED`). Generar, corregir y liquidar requieren `Idempotency-Key`.
   Corregir solo está permitido en `PENDING`; liquidar congela el snapshot.
+
+### Fase 8.8 — Configuración e Integraciones
+
+#### Empresas (CRUD)
+
+##### 1. Crear empresa: `POST /api/v1/companies`
+
+Solo ADMIN. Crea una nueva empresa o sucursal.
+
+Request DTO:
+
+```json
+{
+  "name": "Mi Sucursal Centro",
+  "address": "Calle Falsa 123",
+  "phone": "+54 11 1234-5678"
+}
+```
+
+Response (201 Created):
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-0000-0000-0000-000000000001",
+    "name": "Mi Sucursal Centro",
+    "isActive": true,
+    "address": "Calle Falsa 123",
+    "phone": "+54 11 1234-5678"
+  }
+}
+```
+
+##### 2. Editar empresa: `PATCH /api/v1/companies/{id}`
+
+Solo ADMIN. Edita campos de una empresa existente. Solo se actualizan los campos enviados.
+
+Request DTO:
+
+```json
+{
+  "name": "Mi Sucursal Centro Actualizado",
+  "isActive": true
+}
+```
+
+Response (200 OK): mismo formato que crear.
+
+##### 3. Desactivar empresa: `DELETE /api/v1/companies/{id}`
+
+Solo ADMIN. Marca la empresa como inactiva (`isActive = false`). No elimina físicamente.
+
+Response (200 OK):
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-0000-0000-0000-000000000001",
+    "status": "deactivated"
+  }
+}
+```
+
+##### 4. Listar empresas: `GET /api/v1/companies`
+
+Devuelve ID y nombre de las empresas activas autorizadas para la sesión del usuario autenticado.
+
+#### Pendiente de implementación (Fase 8.8)
+
+Los siguientes módulos de Configuración e Integraciones están definidos en el plan
+operativo pero aún no tienen endpoints implementados en el backend:
+
+- **Usuarios**: `GET/POST /api/v1/users`, `GET/PATCH /api/v1/users/{id}`
+- **Roles**: `GET/POST /api/v1/roles`, `GET/PATCH /api/v1/roles/{id}`
+- **Proveedores**: endpoints de configuración de proveedores (separados del catálogo de precios)
+- **Plantillas de WhatsApp**: `GET/POST /api/v1/whatsapp-templates`, `GET/PATCH /api/v1/whatsapp-templates/{id}`
+- **Parámetros generales**: `GET/PATCH /api/v1/settings`
+- **Integraciones**: ya existen `POST /integrations/google-sheets/schedule-sync`, `GET /integrations/status`, `POST /integrations/whatsapp/log`
 
 ## Códigos
 

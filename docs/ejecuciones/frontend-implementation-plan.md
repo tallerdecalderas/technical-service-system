@@ -148,27 +148,36 @@ estar disponibles.
 - [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
-### 8.8 — Configuración (pantallas nuevas)
+### 8.8 — Configuración e Integraciones (pantallas nuevas)
 
 - [ ] Definir y completar en el backend los recursos/endpoints de configuración
-      requeridos antes de conectar esta pantalla; actualmente no aparecen en
-      el contrato API.
-- [ ] Crear las pantallas administrativas acordadas para usuarios, roles,
-      proveedores, plantillas de WhatsApp y parámetros generales.
-- [ ] Mantener preferencias locales de interfaz (por ejemplo tema/idioma) en
-      frontend cuando corresponda; persistir en Go solo ajustes operativos
-      cuyo alcance esté definido.
+      e integraciones requeridos antes de conectar estas pantallas; actualmente
+      no aparecen en el contrato API.
+- [ ] Crear pantallas administrativas de Configuración: empresas (CRUD de
+      sucursales), usuarios, roles, proveedores, plantillas de WhatsApp y
+      parámetros generales.
+- [ ] Crear pantallas administrativas de Integraciones: estado de Google Sheets
+      (última sincronización, acción "Sincronizar"), importación de catálogo
+      desde Google Sheets y estado general de integraciones.
+- [ ] Mantener preferencias locales de interfaz (tema, idioma) en frontend;
+      persistir en Go solo ajustes operativos cuyo alcance esté definido.
+- [ ] No exponer secretos de integración mediante endpoints de lectura del
+      frontend; credenciales de Google/Supabase solo en entorno seguro del
+      backend.
 - [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 
-### 8.9 — Storage e integraciones
+### 8.9 — Storage (archivos)
 
-- [ ] Conectar carga direct-to-R2: solicitar URL `PUT` prefirmada a Go (`POST /api/v1/storage/signed-url`), enviar binario directamente a R2 con headers firmados (`Content-Type`, `If-None-Match`, `x-amz-meta-upload-id`) y notificar confirmación a Go (`POST /api/v1/storage/objects/{id}/confirm`).
-- [ ] Conectar descarga y visualización de archivos mediante URLs `GET` prefirmadas emitidas por Go (`GET /api/v1/storage/objects/{id}/download-url`).
-- [ ] Conectar solicitud de eliminación autorizada (`DELETE /api/v1/storage/objects/{id}`).
-- [ ] PWA offline: encolar fotos capturadas offline en IndexedDB; transferir a R2 y confirmar ante Go solo al recuperar conectividad, purgando el blob local tras confirmación exitosa.
-- [ ] Conectar estado/sincronización de integraciones; conservar WhatsApp
-      manual, sin envío automático.
+- [ ] Conectar carga de archivos mediante endpoint de prueba local del backend
+      (guarda imágenes en carpeta del backend) por ahora; la integración real
+      con Cloudflare R2 se implementará al final, en producción.
+- [ ] Conectar descarga y visualización de archivos mediante URLs emitidas por
+      Go.
+- [ ] Conectar solicitud de eliminación autorizada.
+- [ ] PWA offline: encolar fotos capturadas offline en IndexedDB; transferir al
+      backend y confirmar solo al recuperar conectividad, purgando el blob
+      local tras confirmación exitosa.
 - [ ] Aplicar el criterio común de smoke frontend: ejecutar `pnpm build`,
       iniciar Next.js con `pnpm start` y comprobar HTTP 200 en `/login`.
 

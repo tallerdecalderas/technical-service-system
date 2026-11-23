@@ -51,8 +51,6 @@ Presupuesto
 
 Inventario/catalogo
 
-Integraciones
-
 Configuración
 ```
 
